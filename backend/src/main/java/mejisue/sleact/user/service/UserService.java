@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import mejisue.sleact.user.domain.User;
 import mejisue.sleact.user.dto.UserSaveReqDto;
 import mejisue.sleact.user.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public void signup(UserSaveReqDto dto) {
         /** 이메일 중복 확인 **/
@@ -20,7 +22,7 @@ public class UserService {
         User newMember = User.builder()
                 .nickname(dto.getNickname())
                 .email(dto.getEmail())
-                .password(dto.getPassword())
+                .password(passwordEncoder.encode(dto.getPassword()))
                 .build();
         userRepository.save(newMember);
 
