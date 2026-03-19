@@ -1,4 +1,4 @@
-package sleact.chattingserver.user.dto;
+package mejisue.sleact.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

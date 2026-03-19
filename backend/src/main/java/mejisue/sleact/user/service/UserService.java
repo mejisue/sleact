@@ -1,7 +1,9 @@
 package mejisue.sleact.user.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.dto.UserLoginReqDto;
 import mejisue.sleact.user.dto.UserSaveReqDto;
 import mejisue.sleact.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,15 @@ public class UserService {
                 .build();
         userRepository.save(newMember);
 
+    }
+
+    public User login(UserLoginReqDto memberLoginDto) {
+        User member = userRepository.findByEmail(memberLoginDto.getEmail()).orElseThrow(
+                () -> new EntityNotFoundException("존재하지 않는 이메일입니다."));
+        if(!passwordEncoder.matches(memberLoginDto.getPassword(), member.getPassword())) {
+            throw new IllegalStateException("비밀번호가 일치하지 않습니다.");
+        }
+        return member;
     }
 
     private void validateDuplicatedEmail(UserSaveReqDto dto) {
