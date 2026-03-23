@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -206,6 +207,41 @@ class WorkspaceControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("이미 회원이 워크스페이스에 소속되어 있습니다."));
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 삭제 성공 시 200 반환")
+    @WithMockUser(username = "member@test.com")
+    void deleteMemberInWorkspace_success() throws Exception {
+        // given
+        willDoNothing().given(workspaceService).deleteMemberInWorkspace(anyString(), anyString());
+
+        // when & then
+        mockMvc.perform(delete("/api/workspaces/테스트 워크스페이스/member/me"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("ok"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 또는 유저로 삭제 시 404 반환")
+    @WithMockUser(username = "member@test.com")
+    void deleteMemberInWorkspace_notFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("해당하는 워크스페이스 또는 유저 정보가 없습니다."))
+                .given(workspaceService).deleteMemberInWorkspace(anyString(), anyString());
+
+        // when & then
+        mockMvc.perform(delete("/api/workspaces/없는 워크스페이스/member/me"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("해당하는 워크스페이스 또는 유저 정보가 없습니다."));
+    }
+
+    @Test
+    @DisplayName("인증 없이 멤버 삭제 요청 시 403 반환")
+    void deleteMemberInWorkspace_unauthenticated_returns403() throws Exception {
+        // when & then
+        mockMvc.perform(delete("/api/workspaces/테스트 워크스페이스/member/me"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

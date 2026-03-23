@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class WorkspaceServiceTest {
@@ -202,5 +203,38 @@ class WorkspaceServiceTest {
                 .hasMessage("이미 회원이 워크스페이스에 소속되어 있습니다.");
 
         verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 삭제 성공")
+    void deleteMemberInWorkspace_success() {
+        // given
+        User user = User.builder().email("member@test.com").build();
+        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        WorkspaceMember workspaceMember = WorkspaceMember.builder().workspace(workspace).user(user).build();
+
+        given(workspaceMemberRepository.findByWorkspaceNameAndUserEmail("테스트 워크스페이스", "member@test.com"))
+                .willReturn(Optional.of(workspaceMember));
+
+        // when
+        workspaceService.deleteMemberInWorkspace("테스트 워크스페이스", "member@test.com");
+
+        // then
+        verify(workspaceMemberRepository, times(1)).delete(workspaceMember);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 또는 유저로 멤버 삭제 시 EntityNotFoundException 발생")
+    void deleteMemberInWorkspace_notFound_throwsEntityNotFoundException() {
+        // given
+        given(workspaceMemberRepository.findByWorkspaceNameAndUserEmail("없는 워크스페이스", "member@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.deleteMemberInWorkspace("없는 워크스페이스", "member@test.com"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당하는 워크스페이스 또는 유저 정보가 없습니다.");
+
+        verify(workspaceMemberRepository, never()).delete(any());
     }
 }
