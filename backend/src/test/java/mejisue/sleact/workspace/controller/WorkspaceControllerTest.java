@@ -71,7 +71,7 @@ class WorkspaceControllerTest {
         given(workspaceService.createWorkspace(anyString(), any(WorkspaceCreateDto.class))).willReturn(resDto);
 
         // when & then
-        mockMvc.perform(post("/api/workspaces")
+        mockMvc.perform(post("/api/workspace")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDto)))
                 .andExpect(status().isOk())
@@ -93,7 +93,7 @@ class WorkspaceControllerTest {
                 .given(workspaceService).createWorkspace(anyString(), any(WorkspaceCreateDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspaces")
+        mockMvc.perform(post("/api/workspace")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDto)))
                 .andExpect(status().isNotFound())
@@ -112,7 +112,7 @@ class WorkspaceControllerTest {
         given(workspaceMemberService.findWorkspacesByEmail(anyString())).willReturn(resDtoList);
 
         // when & then
-        mockMvc.perform(get("/api/workspaces"))
+        mockMvc.perform(get("/api/workspace"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("워크스페이스1"))
@@ -128,7 +128,7 @@ class WorkspaceControllerTest {
                 .given(workspaceMemberService).findWorkspacesByEmail(anyString());
 
         // when & then
-        mockMvc.perform(get("/api/workspaces"))
+        mockMvc.perform(get("/api/workspace"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("User not found"));
     }
@@ -145,7 +145,7 @@ class WorkspaceControllerTest {
         willDoNothing().given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspaces/테스트 워크스페이스/members")
+        mockMvc.perform(post("/api/workspace/테스트 워크스페이스/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
@@ -164,7 +164,7 @@ class WorkspaceControllerTest {
                 .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspaces/없는 워크스페이스/members")
+        mockMvc.perform(post("/api/workspace/없는 워크스페이스/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound())
@@ -183,7 +183,7 @@ class WorkspaceControllerTest {
                 .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspaces/테스트 워크스페이스/members")
+        mockMvc.perform(post("/api/workspace/테스트 워크스페이스/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound())
@@ -202,7 +202,7 @@ class WorkspaceControllerTest {
                 .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspaces/테스트 워크스페이스/members")
+        mockMvc.perform(post("/api/workspace/테스트 워크스페이스/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
@@ -217,7 +217,7 @@ class WorkspaceControllerTest {
         willDoNothing().given(workspaceService).deleteMemberInWorkspace(anyString(), anyString());
 
         // when & then
-        mockMvc.perform(delete("/api/workspaces/테스트 워크스페이스/member/me"))
+        mockMvc.perform(delete("/api/workspace/테스트 워크스페이스/member/me"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("ok"));
     }
@@ -231,7 +231,7 @@ class WorkspaceControllerTest {
                 .given(workspaceService).deleteMemberInWorkspace(anyString(), anyString());
 
         // when & then
-        mockMvc.perform(delete("/api/workspaces/없는 워크스페이스/member/me"))
+        mockMvc.perform(delete("/api/workspace/없는 워크스페이스/member/me"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("해당하는 워크스페이스 또는 유저 정보가 없습니다."));
     }
@@ -240,7 +240,7 @@ class WorkspaceControllerTest {
     @DisplayName("인증 없이 멤버 삭제 요청 시 403 반환")
     void deleteMemberInWorkspace_unauthenticated_returns403() throws Exception {
         // when & then
-        mockMvc.perform(delete("/api/workspaces/테스트 워크스페이스/member/me"))
+        mockMvc.perform(delete("/api/workspace/테스트 워크스페이스/member/me"))
                 .andExpect(status().isForbidden());
     }
 
@@ -253,7 +253,7 @@ class WorkspaceControllerTest {
         createDto.setUrl("test-workspace");
 
         // when & then
-        mockMvc.perform(post("/api/workspaces")
+        mockMvc.perform(post("/api/workspace")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDto)))
                 .andExpect(status().isForbidden());

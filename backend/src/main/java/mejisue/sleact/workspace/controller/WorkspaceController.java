@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/workspaces")
+@RequestMapping("/api/workspace")
 @RequiredArgsConstructor
 public class WorkspaceController {
 
@@ -34,7 +34,7 @@ public class WorkspaceController {
     }
 
     /** 워크스페이스로 멤버 초대하기(워크스페이스, 일반채널 -> 기본채널) **/
-    @PostMapping("/{workspace}/members")
+    @PostMapping("/{workspace}/member")
     public ResponseEntity<?> inviteMembersToWorkspace(@PathVariable String workspace, @RequestBody InviteMemberDto dto) {
         workspacesService.inviteMembersToWorkspace(workspace, dto);
         return ResponseEntity.ok("ok");
