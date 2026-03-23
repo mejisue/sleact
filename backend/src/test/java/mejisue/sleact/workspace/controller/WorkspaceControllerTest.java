@@ -18,9 +18,15 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import mejisue.sleact.workspaceMember.service.WorkspaceMemberService;
+
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -41,6 +47,9 @@ class WorkspaceControllerTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private WorkspaceMemberService workspaceMemberService;
+
     @Test
     @DisplayName("워크스페이스 생성 성공 시 200과 워크스페이스 정보 반환")
     @WithMockUser(username = "test@test.com")
@@ -56,7 +65,7 @@ class WorkspaceControllerTest {
                 .url("test-workspace")
                 .ownerId(1L)
                 .build();
-        given(workspaceService.createWorkspace(any(), any(WorkspaceCreateDto.class))).willReturn(resDto);
+        given(workspaceService.createWorkspace(anyString(), any(WorkspaceCreateDto.class))).willReturn(resDto);
 
         // when & then
         mockMvc.perform(post("/api/workspaces")
@@ -78,12 +87,45 @@ class WorkspaceControllerTest {
         createDto.setUrl("test-workspace");
 
         willThrow(new EntityNotFoundException("User not found"))
-                .given(workspaceService).createWorkspace(any(), any(WorkspaceCreateDto.class));
+                .given(workspaceService).createWorkspace(anyString(), any(WorkspaceCreateDto.class));
 
         // when & then
         mockMvc.perform(post("/api/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createDto)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("User not found"));
+    }
+
+    @Test
+    @DisplayName("내 워크스페이스 목록 조회 성공 시 200과 목록 반환")
+    @WithMockUser(username = "test@test.com")
+    void getMyWorkspaces_success() throws Exception {
+        // given
+        List<WorkspaceResDto> resDtoList = List.of(
+                WorkspaceResDto.builder().id(1L).name("워크스페이스1").url("ws1").ownerId(1L).build(),
+                WorkspaceResDto.builder().id(2L).name("워크스페이스2").url("ws2").ownerId(1L).build()
+        );
+        given(workspaceMemberService.findWorkspacesByEmail(anyString())).willReturn(resDtoList);
+
+        // when & then
+        mockMvc.perform(get("/api/workspaces"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("워크스페이스1"))
+                .andExpect(jsonPath("$[1].name").value("워크스페이스2"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저로 목록 조회 시 404 반환")
+    @WithMockUser(username = "notfound@test.com")
+    void getMyWorkspaces_userNotFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("User not found"))
+                .given(workspaceMemberService).findWorkspacesByEmail(anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspaces"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("User not found"));
     }

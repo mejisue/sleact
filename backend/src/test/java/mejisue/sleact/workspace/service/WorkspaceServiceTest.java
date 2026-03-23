@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
 
 import java.util.Optional;
 
@@ -52,9 +51,6 @@ class WorkspaceServiceTest {
     @Mock
     private ChannelMemberRepository channelMembersRepository;
 
-    @Mock
-    private Authentication authentication;
-
     @Test
     @DisplayName("워크스페이스 생성 성공")
     void createWorkspace_success() {
@@ -64,13 +60,12 @@ class WorkspaceServiceTest {
         dto.setWorkspace("테스트 워크스페이스");
         dto.setUrl("test-workspace");
 
-        given(authentication.getName()).willReturn("test@test.com");
         given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(owner));
         given(workspaceRepository.save(any(Workspace.class))).willAnswer(invocation -> invocation.getArgument(0));
         given(channelsRepository.save(any(Channel.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        WorkspaceResDto result = workspaceService.createWorkspace(authentication, dto);
+        WorkspaceResDto result = workspaceService.createWorkspace("test@test.com", dto);
 
         // then
         assertThat(result.getName()).isEqualTo("테스트 워크스페이스");
@@ -90,13 +85,12 @@ class WorkspaceServiceTest {
         dto.setWorkspace("테스트 워크스페이스");
         dto.setUrl("test-workspace");
 
-        given(authentication.getName()).willReturn("test@test.com");
         given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(owner));
         given(workspaceRepository.save(any(Workspace.class))).willAnswer(invocation -> invocation.getArgument(0));
         given(channelsRepository.save(any(Channel.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        workspaceService.createWorkspace(authentication, dto);
+        workspaceService.createWorkspace("test@test.com", dto);
 
         // then
         verify(channelsRepository).save(argThat(channel -> "일반".equals(channel.getName())));
@@ -110,11 +104,10 @@ class WorkspaceServiceTest {
         dto.setWorkspace("테스트 워크스페이스");
         dto.setUrl("test-workspace");
 
-        given(authentication.getName()).willReturn("notfound@test.com");
         given(userRepository.findByEmail("notfound@test.com")).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> workspaceService.createWorkspace(authentication, dto))
+        assertThatThrownBy(() -> workspaceService.createWorkspace("notfound@test.com", dto))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("User not found");
 
