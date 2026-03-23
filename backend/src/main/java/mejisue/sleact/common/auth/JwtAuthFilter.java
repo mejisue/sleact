@@ -50,9 +50,9 @@ public class JwtAuthFilter extends GenericFilterBean {
 
         String token = httpRequest.getHeader("Authorization");
         try{
-            if(token != null){
+            if(token != null && !token.isEmpty()){
 
-                if(!token.substring(0,7).equals("Bearer ")){
+                if(!token.startsWith("Bearer ")){
                     throw new AuthenticationException("Bearer 형식이 아닙니다.");
                 }
                 String jwtToken = token.substring(7);
