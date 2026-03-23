@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember, Long> {
 
-    @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws join fetch wm.user u where u.id = :userId")
+    @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.id = :userId")
     List<WorkspaceMember> findByUserId(@Param("userId") Long userId);
 }
 
