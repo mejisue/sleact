@@ -8,6 +8,7 @@ import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
 import mejisue.sleact.user.domain.User;
 import mejisue.sleact.user.repository.UserRepository;
 import mejisue.sleact.workspace.domain.Workspace;
+import mejisue.sleact.workspace.dto.InviteMemberDto;
 import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
 import mejisue.sleact.workspace.dto.WorkspaceResDto;
 import mejisue.sleact.workspace.repository.WorkspaceRepository;
@@ -25,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -113,5 +115,92 @@ class WorkspaceServiceTest {
 
         verify(workspaceRepository, never()).save(any());
         verify(channelsRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 초대 성공")
+    void inviteMembersToWorkspace_success() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().name("일반").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findByName("테스트 워크스페이스")).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceNameAndUserId(anyString(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+
+        // when
+        workspaceService.inviteMembersToWorkspace("테스트 워크스페이스", dto);
+
+        // then
+        verify(workspaceMemberRepository).save(any(WorkspaceMember.class));
+        verify(channelMembersRepository).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스로 초대 시 EntityNotFoundException 발생")
+    void inviteMembersToWorkspace_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findByName("없는 워크스페이스")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace("없는 워크스페이스", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("없는 워크스페이스");
+
+        verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저 초대 시 EntityNotFoundException 발생")
+    void inviteMembersToWorkspace_userNotFound_throwsEntityNotFoundException() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("notfound@test.com");
+
+        given(workspaceRepository.findByName("테스트 워크스페이스")).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("notfound@test.com")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace("테스트 워크스페이스", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당 이메일을 가진 회원이 존재하지 않습니다.");
+
+        verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("이미 워크스페이스 멤버인 유저 초대 시 IllegalStateException 발생")
+    void inviteMembersToWorkspace_alreadyMember_throwsIllegalStateException() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").build();
+        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findByName("테스트 워크스페이스")).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceNameAndUserId(anyString(), any()))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(invitee).build()));
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace("테스트 워크스페이스", dto))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("이미 회원이 워크스페이스에 소속되어 있습니다.");
+
+        verify(workspaceMemberRepository, never()).save(any());
     }
 }

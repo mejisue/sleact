@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import mejisue.sleact.common.auth.JwtTokenProvider;
 import mejisue.sleact.common.config.SecurityConfig;
+import mejisue.sleact.workspace.dto.InviteMemberDto;
 import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
 import mejisue.sleact.workspace.dto.WorkspaceResDto;
 import mejisue.sleact.workspace.service.WorkspaceService;
@@ -25,6 +26,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -128,6 +130,82 @@ class WorkspaceControllerTest {
         mockMvc.perform(get("/api/workspaces"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("User not found"));
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 초대 성공 시 200 반환")
+    @WithMockUser(username = "test@test.com")
+    void inviteMembersToWorkspace_success() throws Exception {
+        // given
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        //이 메서드는 예외 없이 정상 실행되어야함
+        willDoNothing().given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+
+        // when & then
+        mockMvc.perform(post("/api/workspaces/테스트 워크스페이스/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("ok"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스로 초대 시 404 반환")
+    @WithMockUser(username = "test@test.com")
+    void inviteMembersToWorkspace_workspaceNotFound_returns404() throws Exception {
+        // given
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        willThrow(new EntityNotFoundException("workspace(없는 워크스페이스)가 존재하지 않습니다."))
+                .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+
+        // when & then
+        mockMvc.perform(post("/api/workspaces/없는 워크스페이스/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("workspace(없는 워크스페이스)가 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저 초대 시 404 반환")
+    @WithMockUser(username = "test@test.com")
+    void inviteMembersToWorkspace_userNotFound_returns404() throws Exception {
+        // given
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("notfound@test.com");
+
+        willThrow(new EntityNotFoundException("해당 이메일을 가진 회원이 존재하지 않습니다."))
+                .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+
+        // when & then
+        mockMvc.perform(post("/api/workspaces/테스트 워크스페이스/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("해당 이메일을 가진 회원이 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("이미 멤버인 유저 초대 시 400 반환")
+    @WithMockUser(username = "test@test.com")
+    void inviteMembersToWorkspace_alreadyMember_returns400() throws Exception {
+        // given
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("already@test.com");
+
+        willThrow(new IllegalStateException("이미 회원이 워크스페이스에 소속되어 있습니다."))
+                .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+
+        // when & then
+        mockMvc.perform(post("/api/workspaces/테스트 워크스페이스/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("이미 회원이 워크스페이스에 소속되어 있습니다."));
     }
 
     @Test
