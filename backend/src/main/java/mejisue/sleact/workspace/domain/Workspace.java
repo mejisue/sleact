@@ -30,4 +30,5 @@ public class Workspace extends BaseEntity {
     @JoinColumn(name = "owner_id")
     private User owner;
 
+
 }
