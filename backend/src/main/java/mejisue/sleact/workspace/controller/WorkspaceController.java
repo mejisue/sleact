@@ -23,7 +23,7 @@ public class WorkspaceController {
     /** 워크스페이스 생성하기 **/
     @PostMapping
     public WorkspaceResDto createWorkspace(Authentication authentication, @RequestBody WorkspaceCreateDto createDto) {
-        return workspacesService.createWorkspace(authentication, createDto);
+        return workspacesService.createWorkspace(authentication.getName(), createDto);
     }
 
     /** 내 워크스페이스 목록 가져오기 **/

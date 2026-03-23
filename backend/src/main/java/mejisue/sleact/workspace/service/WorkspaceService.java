@@ -15,7 +15,6 @@ import mejisue.sleact.workspace.dto.WorkspaceResDto;
 import mejisue.sleact.workspace.repository.WorkspaceRepository;
 import mejisue.sleact.workspaceMember.domain.WorkspaceMember;
 import mejisue.sleact.workspaceMember.repository.WorkspaceMemberRepository;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +31,7 @@ public class WorkspaceService {
     private final ChannelMemberRepository channelMembersRepository;
 
     /** 워크스페이스 만들기 **/
-    public WorkspaceResDto createWorkspace(Authentication authentication, WorkspaceCreateDto dto) {
-        String email = authentication.getName();
+    public WorkspaceResDto createWorkspace(String email, WorkspaceCreateDto dto) {
         User targetUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
