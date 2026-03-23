@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query';
 import { signup } from '../api/auth';
 import useInput from '../hooks/useInput';
 import {
-    Container,
     Header,
     Form,
     Label,
@@ -54,7 +53,7 @@ export default function SignUpPage() {
     );
 
     return (
-        <Container>
+        <div>
             <Header>
                 <Link to="/">Sleact</Link>
             </Header>
@@ -99,6 +98,6 @@ export default function SignUpPage() {
                 이미 회원이신가요?&nbsp;
                 <Link to="/login">로그인 하러가기</Link>
             </LinkContainer>
-        </Container>
+        </div>
     );
 };
