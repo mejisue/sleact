@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,9 @@ public class WorkspaceService {
     private final ChannelRepository channelsRepository;
     private final ChannelMemberRepository channelMembersRepository;
 
-    /** 워크스페이스 만들기 **/
+    /**
+     * 워크스페이스 만들기
+     **/
     public WorkspaceResDto createWorkspace(String email, WorkspaceCreateDto dto) {
         User targetUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
@@ -55,7 +58,9 @@ public class WorkspaceService {
         return WorkspaceResDto.from(newWorkspace);
     }
 
-    /** 워크스페이스로 멤버 초대하기 **/
+    /**
+     * 워크스페이스로 멤버 초대하기
+     **/
     public void inviteMembersToWorkspace(String workspaceName, InviteMemberDto dto) {
         Workspace targetWorkspace = workspaceRepository.findByName(workspaceName)
                 .orElseThrow(() -> new EntityNotFoundException("workspace(" + workspaceName + ")가 존재하지 않습니다."));
@@ -79,5 +84,12 @@ public class WorkspaceService {
         channelMembersRepository.save(ChannelMember.builder().channel(defaultChannel).user(targetUser).build());
 
         log.info("invite To Workspace! {} member: {}", targetWorkspace.getName(), targetUser.getNickname());
+    }
+
+    public void deleteMemberInWorkspace(String workspaceName, String memberEmail) {
+        WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceNameAndUserEmail(workspaceName, memberEmail)
+                .orElseThrow(() -> new EntityNotFoundException("해당하는 워크스페이스 또는 유저 정보가 없습니다."));
+
+        workspaceMemberRepository.delete(workspaceMember);
     }
 }

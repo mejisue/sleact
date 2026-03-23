@@ -39,4 +39,11 @@ public class WorkspaceController {
         workspacesService.inviteMembersToWorkspace(workspace, dto);
         return ResponseEntity.ok("ok");
     }
+
+    /** 워크스페이스에서 나가기 **/
+    @DeleteMapping("/{workspace}/member/me")
+    public ResponseEntity<?> deleteMemberInWorkspace(@PathVariable String workspace, Authentication authentication) {
+        workspacesService.deleteMemberInWorkspace(workspace, authentication.getName());
+        return ResponseEntity.ok("ok");
+    }
 }
