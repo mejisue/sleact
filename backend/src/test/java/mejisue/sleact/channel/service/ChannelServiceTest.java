@@ -3,9 +3,12 @@ package mejisue.sleact.channel.service;
 import jakarta.persistence.EntityNotFoundException;
 import mejisue.sleact.channel.domain.Channel;
 import mejisue.sleact.channel.dto.ChannelResDto;
+import mejisue.sleact.channel.dto.CreateChannelDto;
+import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
 import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.repository.UserRepository;
 import mejisue.sleact.workspace.domain.Workspace;
 import mejisue.sleact.workspace.repository.WorkspaceRepository;
 import mejisue.sleact.workspaceMember.domain.WorkspaceMember;
@@ -22,7 +25,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 class ChannelServiceTest {
@@ -38,6 +43,12 @@ class ChannelServiceTest {
 
     @Mock
     private ChannelMemberRepository channelMemberRepository;
+
+    @Mock
+    private ChannelRepository channelRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("채널 목록 조회 성공")
@@ -114,5 +125,88 @@ class ChannelServiceTest {
         assertThatThrownBy(() -> channelService.getMyChannels("outsider@test.com", 1L))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("해당 워크스페이스의 멤버가 아닙니다.");
+    }
+
+    @Test
+    @DisplayName("채널 생성 성공")
+    void createChannel_success() {
+        // given
+        User user = User.builder().email("user@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        CreateChannelDto dto = new CreateChannelDto();
+        dto.setName("신규채널");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "user@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(user).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "신규채널")).willReturn(Optional.empty());
+        given(userRepository.findByEmail("user@test.com")).willReturn(Optional.of(user));
+        given(channelRepository.save(any(Channel.class)))
+                .willAnswer(inv -> {
+                    Channel c = inv.getArgument(0);
+                    return Channel.builder().id(10L).name(c.getName()).workspace(c.getWorkspace()).build();
+                });
+
+        // when
+        ChannelResDto result = channelService.createChannel("user@test.com", 1L, dto);
+
+        // then
+        assertThat(result.getName()).isEqualTo("신규채널");
+        assertThat(result.getWorkspaceId()).isEqualTo(1L);
+        then(channelMemberRepository).should().save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("채널 생성 시 워크스페이스가 존재하지 않으면 EntityNotFoundException 발생")
+    void createChannel_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        CreateChannelDto dto = new CreateChannelDto();
+        dto.setName("신규채널");
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.createChannel("user@test.com", 999L, dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("채널 생성 시 워크스페이스 멤버가 아니면 EntityNotFoundException 발생")
+    void createChannel_notWorkspaceMember_throwsEntityNotFoundException() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        CreateChannelDto dto = new CreateChannelDto();
+        dto.setName("신규채널");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "outsider@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.createChannel("outsider@test.com", 1L, dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당 워크스페이스의 멤버가 아닙니다.");
+    }
+
+    @Test
+    @DisplayName("채널 생성 시 이미 존재하는 채널명이면 IllegalStateException 발생")
+    void createChannel_duplicateChannelName_throwsIllegalStateException() {
+        // given
+        User user = User.builder().email("user@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        Channel existing = Channel.builder().id(1L).name("중복채널").workspace(workspace).build();
+        CreateChannelDto dto = new CreateChannelDto();
+        dto.setName("중복채널");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "user@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(user).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "중복채널")).willReturn(Optional.of(existing));
+
+        // when & then
+        assertThatThrownBy(() -> channelService.createChannel("user@test.com", 1L, dto))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("이미 존재하는 채널 이름입니다.");
     }
 }
