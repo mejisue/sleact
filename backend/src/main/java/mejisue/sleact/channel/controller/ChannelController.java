@@ -37,4 +37,12 @@ public class ChannelController {
         ChannelResDto newChannel = channelService.createChannel(email, workspaceId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(newChannel);
     }
+
+    /** 채널 정보를 가져옴 **/
+    @GetMapping("/workspace/{workspaceId}/channels/{channelName}")
+    public ResponseEntity<ChannelResDto> getChannelInfo(Authentication authentication, @PathVariable Long workspaceId, @PathVariable String channelName) {
+        String email = authentication.getName();
+        ChannelResDto channelInfo = channelService.getChannelInfo(email, workspaceId, channelName);
+        return ResponseEntity.ok(channelInfo);
+    }
 }

@@ -10,7 +10,8 @@ import java.util.Optional;
 
 public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Long> {
 
-
     @Query("select cm from ChannelMember cm join fetch cm.channel c where c.workspace.id = :workspaceId and cm.user.email = :email")
     List<ChannelMember> findByWorkspaceIdAndUserEmail(@Param("workspaceId") Long workspaceId, @Param("email") String email);
+
+    Optional<ChannelMember> findByChannelIdAndUserEmail(Long channelId, String email);
 }

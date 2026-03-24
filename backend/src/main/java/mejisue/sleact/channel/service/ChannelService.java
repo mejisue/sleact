@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,5 +63,22 @@ public class ChannelService {
         channelRepository.save(newChannel);
         channelMemberRepository.save(ChannelMember.builder().channel(newChannel).user(targetUser).build());
         return ChannelResDto.toDto(newChannel);
+    }
+
+    public ChannelResDto getChannelInfo(String email, Long workspaceId, String channelName) {
+        Workspace targetWorkspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
+
+        workspaceMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, email)
+                .orElseThrow(() -> new EntityNotFoundException("해당 워크스페이스의 멤버가 아닙니다."));
+
+        Channel targetChannel = channelRepository.findByWorkspaceAndName(targetWorkspace, channelName)
+                .orElseThrow(() -> new EntityNotFoundException("channel(channelName=" + channelName + ")가 존재하지 않습니다."));
+
+        channelMemberRepository.findByChannelIdAndUserEmail(targetChannel.getId(), email)
+                .orElseThrow(() -> new EntityNotFoundException("해당 채널의 멤버가 아닙니다."));
+
+        return ChannelResDto.toDto(targetChannel);
+
     }
 }
