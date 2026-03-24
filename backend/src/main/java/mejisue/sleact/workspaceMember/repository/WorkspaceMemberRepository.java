@@ -14,11 +14,12 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.id = :userId")
     List<WorkspaceMember> findByUserId(@Param("userId") Long userId);
 
-    @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.id = :userId and ws.name = :workspaceName")
-    Optional<WorkspaceMember> findByWorkspaceNameAndUserId(@Param("workspaceName")String workspaceName, @Param("userId")Long userId);
+    @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.id = :userId and ws.id = :workspaceId")
+    Optional<WorkspaceMember> findByWorkspaceIdAndUserId(@Param("workspaceId") Long workspaceId, @Param("userId") Long userId);
 
-    @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.email = :userEmail and ws.name = :workspaceName")
-    Optional<WorkspaceMember> findByWorkspaceNameAndUserEmail(@Param("workspaceName")String workspaceName, @Param("userEmail")String userEmail);
+    @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.email = :userEmail and ws.id = :workspaceId")
+    Optional<WorkspaceMember> findByWorkspaceIdAndUserEmail(@Param("workspaceId") Long workspaceId, @Param("userEmail") String userEmail);
 
+    @Query("select wm from WorkspaceMember wm join fetch wm.workspace join fetch wm.user where wm.user.id in :userIds")
+    List<WorkspaceMember> findByUserIdIn(@Param("userIds") List<Long> userIds);
 }
-

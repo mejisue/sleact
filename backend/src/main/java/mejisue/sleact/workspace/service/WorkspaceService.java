@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -61,14 +60,14 @@ public class WorkspaceService {
     /**
      * 워크스페이스로 멤버 초대하기
      **/
-    public void inviteMembersToWorkspace(String workspaceName, InviteMemberDto dto) {
-        Workspace targetWorkspace = workspaceRepository.findByName(workspaceName)
-                .orElseThrow(() -> new EntityNotFoundException("workspace(" + workspaceName + ")가 존재하지 않습니다."));
+    public void inviteMembersToWorkspace(Long workspaceId, InviteMemberDto dto) {
+        Workspace targetWorkspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
 
         User targetUser = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new EntityNotFoundException("해당 이메일을 가진 회원이 존재하지 않습니다."));
 
-        if (workspaceMemberRepository.findByWorkspaceNameAndUserId(workspaceName, targetUser.getId()).isPresent()) {
+        if (workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, targetUser.getId()).isPresent()) {
             throw new IllegalStateException("이미 회원이 워크스페이스에 소속되어 있습니다.");
         }
 
@@ -86,8 +85,11 @@ public class WorkspaceService {
         log.info("invite To Workspace! {} member: {}", targetWorkspace.getName(), targetUser.getNickname());
     }
 
-    public void deleteMemberInWorkspace(String workspaceName, String memberEmail) {
-        WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceNameAndUserEmail(workspaceName, memberEmail)
+    /**
+     * 워크스페이스에서 나가기
+     **/
+    public void deleteMemberInWorkspace(Long workspaceId, String memberEmail) {
+        WorkspaceMember workspaceMember = workspaceMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, memberEmail)
                 .orElseThrow(() -> new EntityNotFoundException("해당하는 워크스페이스 또는 유저 정보가 없습니다."));
 
         workspaceMemberRepository.delete(workspaceMember);

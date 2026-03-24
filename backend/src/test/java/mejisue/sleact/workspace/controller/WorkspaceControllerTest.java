@@ -24,6 +24,7 @@ import mejisue.sleact.workspaceMember.service.WorkspaceMemberService;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
@@ -141,11 +142,10 @@ class WorkspaceControllerTest {
         InviteMemberDto dto = new InviteMemberDto();
         dto.setEmail("invitee@test.com");
 
-        //이 메서드는 예외 없이 정상 실행되어야함
-        willDoNothing().given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+        willDoNothing().given(workspaceService).inviteMembersToWorkspace(anyLong(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspace/테스트 워크스페이스/member")
+        mockMvc.perform(post("/api/workspace/1/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
@@ -160,15 +160,15 @@ class WorkspaceControllerTest {
         InviteMemberDto dto = new InviteMemberDto();
         dto.setEmail("invitee@test.com");
 
-        willThrow(new EntityNotFoundException("workspace(없는 워크스페이스)가 존재하지 않습니다."))
-                .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+        willThrow(new EntityNotFoundException("workspace(id=999)가 존재하지 않습니다."))
+                .given(workspaceService).inviteMembersToWorkspace(anyLong(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspace/없는 워크스페이스/member")
+        mockMvc.perform(post("/api/workspace/999/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string("workspace(없는 워크스페이스)가 존재하지 않습니다."));
+                .andExpect(content().string("workspace(id=999)가 존재하지 않습니다."));
     }
 
     @Test
@@ -180,10 +180,10 @@ class WorkspaceControllerTest {
         dto.setEmail("notfound@test.com");
 
         willThrow(new EntityNotFoundException("해당 이메일을 가진 회원이 존재하지 않습니다."))
-                .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+                .given(workspaceService).inviteMembersToWorkspace(anyLong(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspace/테스트 워크스페이스/member")
+        mockMvc.perform(post("/api/workspace/1/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound())
@@ -199,10 +199,10 @@ class WorkspaceControllerTest {
         dto.setEmail("already@test.com");
 
         willThrow(new IllegalStateException("이미 회원이 워크스페이스에 소속되어 있습니다."))
-                .given(workspaceService).inviteMembersToWorkspace(anyString(), any(InviteMemberDto.class));
+                .given(workspaceService).inviteMembersToWorkspace(anyLong(), any(InviteMemberDto.class));
 
         // when & then
-        mockMvc.perform(post("/api/workspace/테스트 워크스페이스/member")
+        mockMvc.perform(post("/api/workspace/1/member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
@@ -214,10 +214,10 @@ class WorkspaceControllerTest {
     @WithMockUser(username = "member@test.com")
     void deleteMemberInWorkspace_success() throws Exception {
         // given
-        willDoNothing().given(workspaceService).deleteMemberInWorkspace(anyString(), anyString());
+        willDoNothing().given(workspaceService).deleteMemberInWorkspace(anyLong(), anyString());
 
         // when & then
-        mockMvc.perform(delete("/api/workspace/테스트 워크스페이스/member/me"))
+        mockMvc.perform(delete("/api/workspace/1/member/me"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("ok"));
     }
@@ -228,10 +228,10 @@ class WorkspaceControllerTest {
     void deleteMemberInWorkspace_notFound_returns404() throws Exception {
         // given
         willThrow(new EntityNotFoundException("해당하는 워크스페이스 또는 유저 정보가 없습니다."))
-                .given(workspaceService).deleteMemberInWorkspace(anyString(), anyString());
+                .given(workspaceService).deleteMemberInWorkspace(anyLong(), anyString());
 
         // when & then
-        mockMvc.perform(delete("/api/workspace/없는 워크스페이스/member/me"))
+        mockMvc.perform(delete("/api/workspace/999/member/me"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("해당하는 워크스페이스 또는 유저 정보가 없습니다."));
     }
@@ -240,7 +240,7 @@ class WorkspaceControllerTest {
     @DisplayName("인증 없이 멤버 삭제 요청 시 403 반환")
     void deleteMemberInWorkspace_unauthenticated_returns403() throws Exception {
         // when & then
-        mockMvc.perform(delete("/api/workspace/테스트 워크스페이스/member/me"))
+        mockMvc.perform(delete("/api/workspace/1/member/me"))
                 .andExpect(status().isForbidden());
     }
 
