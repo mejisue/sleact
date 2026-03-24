@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import mejisue.sleact.channel.domain.Channel;
 import mejisue.sleact.channel.dto.ChannelResDto;
 import mejisue.sleact.channel.dto.CreateChannelDto;
+import mejisue.sleact.channel.dto.InviteMemberReqDto;
 import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
@@ -116,4 +117,28 @@ public class ChannelService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public void inviteMemberToChannel(String inviterEmail, Long workspaceId, String channelName, InviteMemberReqDto dto) {
+        Workspace targetWorkspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
+
+        workspaceMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, inviterEmail)
+                .orElseThrow(() -> new EntityNotFoundException("해당 워크스페이스의 멤버가 아닙니다."));
+
+        Channel targetChannel = channelRepository.findByWorkspaceAndName(targetWorkspace, channelName)
+                .orElseThrow(() -> new EntityNotFoundException("channel(channelName=" + channelName + ")가 존재하지 않습니다."));
+
+        User invitee = userRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new EntityNotFoundException("user(email=" + dto.getEmail() + ")가 존재하지 않습니다."));
+
+        workspaceMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, dto.getEmail())
+                .orElseThrow(() -> new EntityNotFoundException("초대할 멤버가 워크스페이스에 소속되어 있지 않습니다."));
+
+        channelMemberRepository.findByChannelIdAndUserEmail(targetChannel.getId(), dto.getEmail())
+                .ifPresent(cm -> { throw new IllegalStateException("이미 채널에 소속된 멤버입니다."); });
+
+        channelMemberRepository.save(ChannelMember.builder().channel(targetChannel).user(invitee).build());
+    }
+
 }

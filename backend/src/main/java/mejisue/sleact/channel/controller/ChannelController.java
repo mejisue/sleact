@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mejisue.sleact.channel.dto.ChannelResDto;
 import mejisue.sleact.channel.dto.CreateChannelDto;
+import mejisue.sleact.channel.dto.InviteMemberReqDto;
 import mejisue.sleact.channel.service.ChannelService;
 import mejisue.sleact.user.dto.UserResDto;
 import org.springframework.http.HttpStatus;
@@ -53,4 +54,15 @@ public class ChannelController {
         List<UserResDto> users = channelService.getMembersInfo(workspaceId, channelName);
         return ResponseEntity.ok(users);
     }
+
+    /** 워크스페이스 내부의 채널로 멤버 초대하기(단, 초대하는 멤버는 해당 워크스페이스에 소속되어 있어야함) **/
+    @PostMapping("/workspace/{workspaceId}/channels/{channelName}/members")
+    public ResponseEntity<Void> inviteMemberToChannel(
+            Authentication authentication, @PathVariable Long workspaceId,
+            @PathVariable String channelName, @RequestBody InviteMemberReqDto dto) {
+        String email = authentication.getName();
+        channelService.inviteMemberToChannel(email, workspaceId, channelName, dto);
+        return ResponseEntity.ok().build();
+    }
 }
+
