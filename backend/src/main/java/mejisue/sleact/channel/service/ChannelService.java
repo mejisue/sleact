@@ -2,8 +2,15 @@ package mejisue.sleact.channel.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import mejisue.sleact.channel.domain.Channel;
 import mejisue.sleact.channel.dto.ChannelResDto;
+import mejisue.sleact.channel.dto.CreateChannelDto;
+import mejisue.sleact.channel.repository.ChannelRepository;
+import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
+import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.repository.UserRepository;
+import mejisue.sleact.workspace.domain.Workspace;
 import mejisue.sleact.workspace.repository.WorkspaceRepository;
 import mejisue.sleact.workspaceMember.repository.WorkspaceMemberRepository;
 import org.springframework.stereotype.Service;
@@ -19,7 +26,9 @@ public class ChannelService {
 
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final WorkspaceRepository workspaceRepository;
-    private final ChannelMemberRepository channelMembersRepository;
+    private final ChannelMemberRepository channelMemberRepository;
+    private final ChannelRepository channelRepository;
+    private final UserRepository userRepository;
 
     public List<ChannelResDto> getMyChannels(String email, Long workspaceId) {
         workspaceRepository.findById(workspaceId)
@@ -28,9 +37,30 @@ public class ChannelService {
         workspaceMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, email)
                 .orElseThrow(() -> new EntityNotFoundException("해당 워크스페이스의 멤버가 아닙니다."));
 
-        return channelMembersRepository.findByWorkspaceIdAndUserEmail(workspaceId, email)
+        return channelMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, email)
                 .stream()
                 .map(cm -> ChannelResDto.toDto(cm.getChannel()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ChannelResDto createChannel(String email, Long workspaceId, CreateChannelDto dto) {
+        Workspace targetWorkspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
+
+        workspaceMemberRepository.findByWorkspaceIdAndUserEmail(workspaceId, email)
+                .orElseThrow(() -> new EntityNotFoundException("해당 워크스페이스의 멤버가 아닙니다."));
+
+        channelRepository.findByWorkspaceAndName(targetWorkspace, dto.getName()).ifPresent(c -> {
+            throw new IllegalStateException("이미 존재하는 채널 이름입니다.");
+        });
+
+        User targetUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("user(email=" + email + ")가 존재하지 않습니다."));
+
+        Channel newChannel = Channel.builder().name(dto.getName()).workspace(targetWorkspace).build();
+        channelRepository.save(newChannel);
+        channelMemberRepository.save(ChannelMember.builder().channel(newChannel).user(targetUser).build());
+        return ChannelResDto.toDto(newChannel);
     }
 }
