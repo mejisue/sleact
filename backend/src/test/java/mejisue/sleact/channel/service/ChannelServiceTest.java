@@ -209,4 +209,96 @@ class ChannelServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("이미 존재하는 채널 이름입니다.");
     }
+
+    @Test
+    @DisplayName("채널 정보 조회 성공")
+    void getChannelInfo_success() {
+        // given
+        User user = User.builder().email("user@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "user@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(user).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(channel));
+        given(channelMemberRepository.findByChannelIdAndUserEmail(10L, "user@test.com"))
+                .willReturn(Optional.of(ChannelMember.builder().channel(channel).user(user).build()));
+
+        // when
+        ChannelResDto result = channelService.getChannelInfo("user@test.com", 1L, "일반");
+
+        // then
+        assertThat(result.getId()).isEqualTo(10L);
+        assertThat(result.getName()).isEqualTo("일반");
+        assertThat(result.getWorkspaceId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 워크스페이스가 존재하지 않으면 EntityNotFoundException 발생")
+    void getChannelInfo_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.getChannelInfo("user@test.com", 999L, "일반"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 워크스페이스 멤버가 아니면 EntityNotFoundException 발생")
+    void getChannelInfo_notWorkspaceMember_throwsEntityNotFoundException() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "outsider@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.getChannelInfo("outsider@test.com", 1L, "일반"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당 워크스페이스의 멤버가 아닙니다.");
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 채널이 존재하지 않으면 EntityNotFoundException 발생")
+    void getChannelInfo_channelNotFound_throwsEntityNotFoundException() {
+        // given
+        User user = User.builder().email("user@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "user@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(user).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "없는채널")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.getChannelInfo("user@test.com", 1L, "없는채널"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("없는채널");
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 채널 멤버가 아니면 EntityNotFoundException 발생")
+    void getChannelInfo_notChannelMember_throwsEntityNotFoundException() {
+        // given
+        User user = User.builder().email("user@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "user@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(user).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(channel));
+        given(channelMemberRepository.findByChannelIdAndUserEmail(10L, "user@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.getChannelInfo("user@test.com", 1L, "일반"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당 채널의 멤버가 아닙니다.");
+    }
 }

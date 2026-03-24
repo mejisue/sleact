@@ -173,4 +173,84 @@ class ChannelControllerTest {
                         .content("{\"name\":\"신규채널\"}"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("채널 정보 조회 성공 시 200과 채널 정보 반환")
+    @WithMockUser(username = "user@test.com")
+    void getChannelInfo_success() throws Exception {
+        // given
+        ChannelResDto channel = ChannelResDto.builder().id(10L).name("일반").workspaceId(1L).build();
+        given(channelService.getChannelInfo(anyString(), anyLong(), anyString())).willReturn(channel);
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/일반"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10L))
+                .andExpect(jsonPath("$.name").value("일반"))
+                .andExpect(jsonPath("$.workspaceId").value(1L));
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 워크스페이스가 존재하지 않으면 404 반환")
+    @WithMockUser(username = "user@test.com")
+    void getChannelInfo_workspaceNotFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("workspace(id=999)가 존재하지 않습니다."))
+                .given(channelService).getChannelInfo(anyString(), anyLong(), anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/999/channels/일반"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("workspace(id=999)가 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 워크스페이스 멤버가 아니면 404 반환")
+    @WithMockUser(username = "outsider@test.com")
+    void getChannelInfo_notWorkspaceMember_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("해당 워크스페이스의 멤버가 아닙니다."))
+                .given(channelService).getChannelInfo(anyString(), anyLong(), anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/일반"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("해당 워크스페이스의 멤버가 아닙니다."));
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 채널이 존재하지 않으면 404 반환")
+    @WithMockUser(username = "user@test.com")
+    void getChannelInfo_channelNotFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("channel(channelName=없는채널)가 존재하지 않습니다."))
+                .given(channelService).getChannelInfo(anyString(), anyLong(), anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/없는채널"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("channel(channelName=없는채널)가 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("채널 정보 조회 시 채널 멤버가 아니면 404 반환")
+    @WithMockUser(username = "user@test.com")
+    void getChannelInfo_notChannelMember_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("해당 채널의 멤버가 아닙니다."))
+                .given(channelService).getChannelInfo(anyString(), anyLong(), anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/일반"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("해당 채널의 멤버가 아닙니다."));
+    }
+
+    @Test
+    @DisplayName("인증 없이 채널 정보 조회 시 403 반환")
+    void getChannelInfo_unauthenticated_returns403() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/일반"))
+                .andExpect(status().isForbidden());
+    }
 }
