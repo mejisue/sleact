@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import mejisue.sleact.channel.dto.ChannelResDto;
 import mejisue.sleact.channel.dto.CreateChannelDto;
 import mejisue.sleact.channel.service.ChannelService;
+import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.common.auth.JwtTokenProvider;
 import mejisue.sleact.common.config.SecurityConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -251,6 +252,69 @@ class ChannelControllerTest {
     void getChannelInfo_unauthenticated_returns403() throws Exception {
         // when & then
         mockMvc.perform(get("/api/workspace/1/channels/일반"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("채널 멤버 목록 조회 성공 시 200과 멤버 목록 반환")
+    @WithMockUser
+    void getMembersInfo_success() throws Exception {
+        // given
+        List<UserResDto> users = new java.util.ArrayList<>();
+        UserResDto user1 = new UserResDto();
+        user1.setId(1L);
+        user1.setEmail("owner@test.com");
+        user1.setNickname("오너");
+        UserResDto user2 = new UserResDto();
+        user2.setId(2L);
+        user2.setEmail("user@test.com");
+        user2.setNickname("유저");
+        users.add(user1);
+        users.add(user2);
+
+        given(channelService.getMembersInfo(anyLong(), anyString())).willReturn(users);
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/일반/members"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].email").value("owner@test.com"))
+                .andExpect(jsonPath("$[1].email").value("user@test.com"));
+    }
+
+    @Test
+    @DisplayName("채널 멤버 목록 조회 시 워크스페이스가 존재하지 않으면 404 반환")
+    @WithMockUser
+    void getMembersInfo_workspaceNotFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("workspace(id=999)가 존재하지 않습니다."))
+                .given(channelService).getMembersInfo(anyLong(), anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/999/channels/일반/members"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("workspace(id=999)가 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("채널 멤버 목록 조회 시 채널이 존재하지 않으면 404 반환")
+    @WithMockUser
+    void getMembersInfo_channelNotFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("channel(channelName=없는채널)가 존재하지 않습니다."))
+                .given(channelService).getMembersInfo(anyLong(), anyString());
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/없는채널/members"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("channel(channelName=없는채널)가 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("인증 없이 채널 멤버 목록 조회 시 403 반환")
+    void getMembersInfo_unauthenticated_returns403() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/channels/일반/members"))
                 .andExpect(status().isForbidden());
     }
 }
