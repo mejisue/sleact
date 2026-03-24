@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import mejisue.sleact.channel.domain.Channel;
 import mejisue.sleact.channel.dto.ChannelResDto;
 import mejisue.sleact.channel.dto.CreateChannelDto;
+import mejisue.sleact.channel.dto.InviteMemberReqDto;
 import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
@@ -380,5 +381,160 @@ class ChannelServiceTest {
         assertThatThrownBy(() -> channelService.getMembersInfo(1L, "없는채널"))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("없는채널");
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 성공")
+    void inviteMemberToChannel_success() {
+        // given
+        User inviter = User.builder().id(1L).email("inviter@test.com").build();
+        User invitee = User.builder().id(2L).email("invitee@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(inviter).build();
+        Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "inviter@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(inviter).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(channel));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "invitee@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(invitee).build()));
+        given(channelMemberRepository.findByChannelIdAndUserEmail(10L, "invitee@test.com"))
+                .willReturn(Optional.empty());
+
+        // when
+        channelService.inviteMemberToChannel("inviter@test.com", 1L, "일반", dto);
+
+        // then
+        then(channelMemberRepository).should().save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 워크스페이스가 존재하지 않으면 EntityNotFoundException 발생")
+    void inviteMemberToChannel_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("invitee@test.com");
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.inviteMemberToChannel("inviter@test.com", 999L, "일반", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 초대하는 사람이 워크스페이스 멤버가 아니면 EntityNotFoundException 발생")
+    void inviteMemberToChannel_inviterNotWorkspaceMember_throwsEntityNotFoundException() {
+        // given
+        User owner = User.builder().id(1L).email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "outsider@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.inviteMemberToChannel("outsider@test.com", 1L, "일반", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당 워크스페이스의 멤버가 아닙니다.");
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 채널이 존재하지 않으면 EntityNotFoundException 발생")
+    void inviteMemberToChannel_channelNotFound_throwsEntityNotFoundException() {
+        // given
+        User inviter = User.builder().id(1L).email("inviter@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(inviter).build();
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "inviter@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(inviter).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "없는채널")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.inviteMemberToChannel("inviter@test.com", 1L, "없는채널", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("없는채널");
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 초대받는 사람이 존재하지 않으면 EntityNotFoundException 발생")
+    void inviteMemberToChannel_inviteeNotFound_throwsEntityNotFoundException() {
+        // given
+        User inviter = User.builder().id(1L).email("inviter@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(inviter).build();
+        Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("ghost@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "inviter@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(inviter).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(channel));
+        given(userRepository.findByEmail("ghost@test.com")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.inviteMemberToChannel("inviter@test.com", 1L, "일반", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("ghost@test.com");
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 초대받는 사람이 워크스페이스 멤버가 아니면 EntityNotFoundException 발생")
+    void inviteMemberToChannel_inviteeNotWorkspaceMember_throwsEntityNotFoundException() {
+        // given
+        User inviter = User.builder().id(1L).email("inviter@test.com").build();
+        User invitee = User.builder().id(2L).email("invitee@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(inviter).build();
+        Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "inviter@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(inviter).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(channel));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "invitee@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> channelService.inviteMemberToChannel("inviter@test.com", 1L, "일반", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("초대할 멤버가 워크스페이스에 소속되어 있지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 이미 채널 멤버면 IllegalStateException 발생")
+    void inviteMemberToChannel_alreadyChannelMember_throwsIllegalStateException() {
+        // given
+        User inviter = User.builder().id(1L).email("inviter@test.com").build();
+        User invitee = User.builder().id(2L).email("invitee@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(inviter).build();
+        Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        InviteMemberReqDto dto = new InviteMemberReqDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "inviter@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(inviter).build()));
+        given(channelRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(channel));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "invitee@test.com"))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(invitee).build()));
+        given(channelMemberRepository.findByChannelIdAndUserEmail(10L, "invitee@test.com"))
+                .willReturn(Optional.of(ChannelMember.builder().channel(channel).user(invitee).build()));
+
+        // when & then
+        assertThatThrownBy(() -> channelService.inviteMemberToChannel("inviter@test.com", 1L, "일반", dto))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("이미 채널에 소속된 멤버입니다.");
     }
 }

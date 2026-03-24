@@ -5,6 +5,7 @@ import mejisue.sleact.channel.dto.ChannelResDto;
 import mejisue.sleact.channel.dto.CreateChannelDto;
 import mejisue.sleact.channel.service.ChannelService;
 import mejisue.sleact.user.dto.UserResDto;
+import org.mockito.Mockito;
 import mejisue.sleact.common.auth.JwtTokenProvider;
 import mejisue.sleact.common.config.SecurityConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -315,6 +316,79 @@ class ChannelControllerTest {
     void getMembersInfo_unauthenticated_returns403() throws Exception {
         // when & then
         mockMvc.perform(get("/api/workspace/1/channels/일반/members"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 성공 시 200 반환")
+    @WithMockUser(username = "inviter@test.com")
+    void inviteMemberToChannel_success() throws Exception {
+        // given
+        Mockito.doNothing().when(channelService)
+                .inviteMemberToChannel(anyString(), anyLong(), anyString(), any());
+
+        // when & then
+        mockMvc.perform(post("/api/workspace/1/channels/일반/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"invitee@test.com\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 초대하는 사람이 워크스페이스 멤버가 아니면 404 반환")
+    @WithMockUser(username = "outsider@test.com")
+    void inviteMemberToChannel_inviterNotWorkspaceMember_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("해당 워크스페이스의 멤버가 아닙니다."))
+                .given(channelService).inviteMemberToChannel(anyString(), anyLong(), anyString(), any());
+
+        // when & then
+        mockMvc.perform(post("/api/workspace/1/channels/일반/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"invitee@test.com\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("해당 워크스페이스의 멤버가 아닙니다."));
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 초대받는 사람이 워크스페이스 멤버가 아니면 404 반환")
+    @WithMockUser(username = "inviter@test.com")
+    void inviteMemberToChannel_inviteeNotWorkspaceMember_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("초대할 멤버가 워크스페이스에 소속되어 있지 않습니다."))
+                .given(channelService).inviteMemberToChannel(anyString(), anyLong(), anyString(), any());
+
+        // when & then
+        mockMvc.perform(post("/api/workspace/1/channels/일반/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"invitee@test.com\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("초대할 멤버가 워크스페이스에 소속되어 있지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("채널 멤버 초대 시 이미 채널 멤버면 400 반환")
+    @WithMockUser(username = "inviter@test.com")
+    void inviteMemberToChannel_alreadyChannelMember_returns400() throws Exception {
+        // given
+        willThrow(new IllegalStateException("이미 채널에 소속된 멤버입니다."))
+                .given(channelService).inviteMemberToChannel(anyString(), anyLong(), anyString(), any());
+
+        // when & then
+        mockMvc.perform(post("/api/workspace/1/channels/일반/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"invitee@test.com\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("이미 채널에 소속된 멤버입니다."));
+    }
+
+    @Test
+    @DisplayName("인증 없이 채널 멤버 초대 시 403 반환")
+    void inviteMemberToChannel_unauthenticated_returns403() throws Exception {
+        // when & then
+        mockMvc.perform(post("/api/workspace/1/channels/일반/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"invitee@test.com\"}"))
                 .andExpect(status().isForbidden());
     }
 }
