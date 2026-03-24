@@ -14,4 +14,7 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Lo
     List<ChannelMember> findByWorkspaceIdAndUserEmail(@Param("workspaceId") Long workspaceId, @Param("email") String email);
 
     Optional<ChannelMember> findByChannelIdAndUserEmail(Long channelId, String email);
+
+    @Query("select cm from ChannelMember cm join fetch cm.user where cm.channel.id = :channelId")
+    List<ChannelMember> findByChannelIdWithUser(@Param("channelId") Long channelId);
 }

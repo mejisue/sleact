@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import mejisue.sleact.channel.dto.ChannelResDto;
 import mejisue.sleact.channel.dto.CreateChannelDto;
 import mejisue.sleact.channel.service.ChannelService;
+import mejisue.sleact.user.dto.UserResDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -44,5 +45,12 @@ public class ChannelController {
         String email = authentication.getName();
         ChannelResDto channelInfo = channelService.getChannelInfo(email, workspaceId, channelName);
         return ResponseEntity.ok(channelInfo);
+    }
+
+    /** 워크스페이스 내부의 채널 안의 멤버 목록을 가져옴 **/
+    @GetMapping("/workspace/{workspaceId}/channels/{channelName}/members")
+    public ResponseEntity<List<UserResDto>> getMembersInfo(@PathVariable Long workspaceId, @PathVariable String channelName) {
+        List<UserResDto> users = channelService.getMembersInfo(workspaceId, channelName);
+        return ResponseEntity.ok(users);
     }
 }

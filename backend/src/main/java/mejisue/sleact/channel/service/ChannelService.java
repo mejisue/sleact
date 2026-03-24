@@ -9,15 +9,17 @@ import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
 import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.user.repository.UserRepository;
 import mejisue.sleact.workspace.domain.Workspace;
+import mejisue.sleact.workspace.dto.WorkspaceResDto;
 import mejisue.sleact.workspace.repository.WorkspaceRepository;
 import mejisue.sleact.workspaceMember.repository.WorkspaceMemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -80,5 +82,38 @@ public class ChannelService {
 
         return ChannelResDto.toDto(targetChannel);
 
+    }
+
+    public List<UserResDto> getMembersInfo(Long workspaceId, String channelName) {
+        Workspace targetWorkspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
+
+        Channel targetChannel = channelRepository.findByWorkspaceAndName(targetWorkspace, channelName)
+                .orElseThrow(() -> new EntityNotFoundException("channel(channelName=" + channelName + ")가 존재하지 않습니다."));
+
+        List<ChannelMember> channelMembers = channelMemberRepository.findByChannelIdWithUser(targetChannel.getId());
+
+        List<Long> userIds = channelMembers.stream()
+                .map(cm -> cm.getUser().getId())
+                .collect(Collectors.toList());
+
+        Map<Long, List<WorkspaceResDto>> workspacesByUserId = workspaceMemberRepository.findByUserIdIn(userIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        wm -> wm.getUser().getId(),
+                        Collectors.mapping(wm -> WorkspaceResDto.from(wm.getWorkspace()), Collectors.toList())
+                ));
+
+        return channelMembers.stream()
+                .map(cm -> {
+                    User user = cm.getUser();
+                    UserResDto dto = new UserResDto();
+                    dto.setId(user.getId());
+                    dto.setEmail(user.getEmail());
+                    dto.setNickname(user.getNickname());
+                    dto.setWorkspaces(workspacesByUserId.getOrDefault(user.getId(), List.of()));
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 }
