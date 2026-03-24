@@ -34,16 +34,16 @@ public class WorkspaceController {
     }
 
     /** 워크스페이스로 멤버 초대하기(워크스페이스, 일반채널 -> 기본채널) **/
-    @PostMapping("/{workspace}/member")
-    public ResponseEntity<?> inviteMembersToWorkspace(@PathVariable String workspace, @RequestBody InviteMemberDto dto) {
-        workspacesService.inviteMembersToWorkspace(workspace, dto);
+    @PostMapping("/{workspaceId}/member")
+    public ResponseEntity<?> inviteMembersToWorkspace(@PathVariable Long workspaceId, @RequestBody InviteMemberDto dto) {
+        workspacesService.inviteMembersToWorkspace(workspaceId, dto);
         return ResponseEntity.ok("ok");
     }
 
     /** 워크스페이스에서 나가기 **/
-    @DeleteMapping("/{workspace}/member/me")
-    public ResponseEntity<?> deleteMemberInWorkspace(@PathVariable String workspace, Authentication authentication) {
-        workspacesService.deleteMemberInWorkspace(workspace, authentication.getName());
+    @DeleteMapping("/{workspaceId}/member/me")
+    public ResponseEntity<?> deleteMemberInWorkspace(@PathVariable Long workspaceId, Authentication authentication) {
+        workspacesService.deleteMemberInWorkspace(workspaceId, authentication.getName());
         return ResponseEntity.ok("ok");
     }
 }

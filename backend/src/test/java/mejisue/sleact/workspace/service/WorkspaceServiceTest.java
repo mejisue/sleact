@@ -26,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
@@ -124,19 +125,19 @@ class WorkspaceServiceTest {
         // given
         User owner = User.builder().email("owner@test.com").build();
         User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
-        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
         Channel defaultChannel = Channel.builder().name("일반").workspace(workspace).build();
 
         InviteMemberDto dto = new InviteMemberDto();
         dto.setEmail("invitee@test.com");
 
-        given(workspaceRepository.findByName("테스트 워크스페이스")).willReturn(Optional.of(workspace));
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
         given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
-        given(workspaceMemberRepository.findByWorkspaceNameAndUserId(anyString(), any())).willReturn(Optional.empty());
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
         given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
 
         // when
-        workspaceService.inviteMembersToWorkspace("테스트 워크스페이스", dto);
+        workspaceService.inviteMembersToWorkspace(1L, dto);
 
         // then
         verify(workspaceMemberRepository).save(any(WorkspaceMember.class));
@@ -150,12 +151,12 @@ class WorkspaceServiceTest {
         InviteMemberDto dto = new InviteMemberDto();
         dto.setEmail("invitee@test.com");
 
-        given(workspaceRepository.findByName("없는 워크스페이스")).willReturn(Optional.empty());
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace("없는 워크스페이스", dto))
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace(999L, dto))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("없는 워크스페이스");
+                .hasMessageContaining("999");
 
         verify(workspaceMemberRepository, never()).save(any());
     }
@@ -165,16 +166,16 @@ class WorkspaceServiceTest {
     void inviteMembersToWorkspace_userNotFound_throwsEntityNotFoundException() {
         // given
         User owner = User.builder().email("owner@test.com").build();
-        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
 
         InviteMemberDto dto = new InviteMemberDto();
         dto.setEmail("notfound@test.com");
 
-        given(workspaceRepository.findByName("테스트 워크스페이스")).willReturn(Optional.of(workspace));
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
         given(userRepository.findByEmail("notfound@test.com")).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace("테스트 워크스페이스", dto))
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace(1L, dto))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("해당 이메일을 가진 회원이 존재하지 않습니다.");
 
@@ -187,18 +188,18 @@ class WorkspaceServiceTest {
         // given
         User owner = User.builder().email("owner@test.com").build();
         User invitee = User.builder().email("invitee@test.com").build();
-        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
 
         InviteMemberDto dto = new InviteMemberDto();
         dto.setEmail("invitee@test.com");
 
-        given(workspaceRepository.findByName("테스트 워크스페이스")).willReturn(Optional.of(workspace));
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
         given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
-        given(workspaceMemberRepository.findByWorkspaceNameAndUserId(anyString(), any()))
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any()))
                 .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(invitee).build()));
 
         // when & then
-        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace("테스트 워크스페이스", dto))
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace(1L, dto))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("이미 회원이 워크스페이스에 소속되어 있습니다.");
 
@@ -210,14 +211,14 @@ class WorkspaceServiceTest {
     void deleteMemberInWorkspace_success() {
         // given
         User user = User.builder().email("member@test.com").build();
-        Workspace workspace = Workspace.builder().name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
         WorkspaceMember workspaceMember = WorkspaceMember.builder().workspace(workspace).user(user).build();
 
-        given(workspaceMemberRepository.findByWorkspaceNameAndUserEmail("테스트 워크스페이스", "member@test.com"))
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "member@test.com"))
                 .willReturn(Optional.of(workspaceMember));
 
         // when
-        workspaceService.deleteMemberInWorkspace("테스트 워크스페이스", "member@test.com");
+        workspaceService.deleteMemberInWorkspace(1L, "member@test.com");
 
         // then
         verify(workspaceMemberRepository, times(1)).delete(workspaceMember);
@@ -227,11 +228,11 @@ class WorkspaceServiceTest {
     @DisplayName("존재하지 않는 워크스페이스 또는 유저로 멤버 삭제 시 EntityNotFoundException 발생")
     void deleteMemberInWorkspace_notFound_throwsEntityNotFoundException() {
         // given
-        given(workspaceMemberRepository.findByWorkspaceNameAndUserEmail("없는 워크스페이스", "member@test.com"))
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(999L, "member@test.com"))
                 .willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> workspaceService.deleteMemberInWorkspace("없는 워크스페이스", "member@test.com"))
+        assertThatThrownBy(() -> workspaceService.deleteMemberInWorkspace(999L, "member@test.com"))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("해당하는 워크스페이스 또는 유저 정보가 없습니다.");
 
