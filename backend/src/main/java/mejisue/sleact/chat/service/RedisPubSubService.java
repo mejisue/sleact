@@ -1,12 +1,16 @@
 package mejisue.sleact.chat.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mejisue.sleact.channelChat.dto.ChannelChatDto;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +19,7 @@ public class RedisPubSubService implements MessageListener {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ObjectMapper objectMapper;
 
     public void publish(String channel, String message) {
         stringRedisTemplate.convertAndSend(channel, message);
@@ -29,7 +34,16 @@ public class RedisPubSubService implements MessageListener {
             return;
         }
 
-        // TODO: feat/channel-chat, feat/dm-chat 브랜치에서 채널별 DTO 역직렬화 및 분기 처리 구현
-        messagingTemplate.convertAndSend(channel, payload);
+        try {
+            if (channel.startsWith("/topic/chat/channel/")) {
+                ChannelChatDto dto = objectMapper.readValue(payload, ChannelChatDto.class);
+                messagingTemplate.convertAndSend(channel, dto);
+            } else {
+                // TODO: feat/dm-chat 브랜치에서 DM DTO 분기 처리 구현
+                messagingTemplate.convertAndSend(channel, payload);
+            }
+        } catch (IOException e) {
+            log.error("Redis 메시지 역직렬화 실패 | channel: {}", channel, e);
+        }
     }
 }
