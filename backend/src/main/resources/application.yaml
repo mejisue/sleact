@@ -10,6 +10,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
   # JPA 및 하이버네이트 설정
   jpa:
     hibernate:
@@ -21,3 +26,5 @@ spring:
         format_sql: true  # SQL을 보기 좋게 정렬해서 출력
         dialect: org.hibernate.dialect.MySQLDialect
 
+websocket:
+  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS}
