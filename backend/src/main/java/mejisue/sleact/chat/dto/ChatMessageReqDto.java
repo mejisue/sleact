@@ -11,5 +11,4 @@ public class ChatMessageReqDto {
 
     private String workspace;
     private String content;
-    private String senderEmail;
 }

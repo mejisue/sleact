@@ -42,15 +42,15 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
             return false;
         }
         try {
-            jwtTokenProvider.getClaims(token);
-            log.info("핸드셰이크 토큰 검증 완료");
+            String email = jwtTokenProvider.getClaims(token).getSubject();
+            attributes.put("token", token);
+            attributes.put("email", email);
+            log.info("핸드셰이크 토큰 검증 완료. email: {}", email);
         } catch (Exception e) {
             log.warn("핸드셰이크 토큰 검증 실패: {}", e.getMessage());
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return false;
         }
-
-        attributes.put("token", token);
         if (workspace != null) {
             attributes.put("workspace", workspace);
         }
