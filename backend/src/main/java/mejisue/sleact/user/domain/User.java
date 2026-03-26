@@ -28,6 +28,8 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = Role.USER;
 
-
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 
 }

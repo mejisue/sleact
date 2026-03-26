@@ -1,14 +1,12 @@
 package mejisue.sleact.common.auth;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,11 +25,18 @@ import java.util.List;
 @Component
 public class JwtAuthFilter extends GenericFilterBean {
 
-    @Value("${jwt.secretKey}")
-    private String secretKey;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    private static final String[] PERMIT_ALL_PATHS =
-            {"/api/users/signup", "/api/users/login"};
+    public JwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
+
+    private static final String[] PERMIT_ALL_PATHS = {
+            "/api/users/signup",
+            "/api/users/login",
+            "/api/users/password-reset/request",
+            "/api/users/password-reset/confirm"
+    };
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
@@ -58,11 +63,7 @@ public class JwtAuthFilter extends GenericFilterBean {
                 String jwtToken = token.substring(7);
 
                 // 토큰 검증 및 claims 추출
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(secretKey)
-                        .build()
-                        .parseClaimsJws(jwtToken)
-                        .getBody();
+                Claims claims = jwtTokenProvider.getClaims(jwtToken);
 
                 // Authentication 객체 생성
                 List<GrantedAuthority> authorities = new ArrayList<>();
