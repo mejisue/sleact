@@ -35,7 +35,8 @@ public class PasswordResetService {
 
     /**
      * 비밀번호 재설정 링크 요청
-     * - 가입된 이메일이 아니어도 동일한 응답 반환 (이메일 존재 여부 노출 방지)
+     * - 가입된 이메일인 경우에만 재설정 링크 발송
+     * - 가입되지 않은 이메일이어도 동일하게 200 응답 (이메일 존재 여부 노출 방지)
      */
     public void requestPasswordReset(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
