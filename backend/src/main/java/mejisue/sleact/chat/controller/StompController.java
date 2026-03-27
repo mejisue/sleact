@@ -32,7 +32,7 @@ public class StompController {
         log.info("채널 메시지 수신 | channel: {}, email: {}", channelName, email);
 
         ChannelChatDto chatDto = channelChatService.postChatFromWSAndChannel(
-                dto.getWorkspace(), channelName, dto.getContent(), email);
+                dto.getWorkspaceId(), channelName, dto.getContent(), email);
 
         String redisChannel = "/topic/chat/channel/" + channelName;
         String messageJson = objectMapper.writeValueAsString(chatDto);

@@ -13,8 +13,8 @@ public interface ChannelRepository extends JpaRepository<Channel, Long> {
     Optional<Channel> findByWorkspaceAndName(Workspace workspace, String name);
 
 
-    @Query("SELECT c FROM Channel c JOIN FETCH c.workspace WHERE c.workspace.name = :workspaceName AND c.name = :channelName")
-    Optional<Channel> findChannelWithWorkspaceByName(
-            @Param("workspaceName") String workspaceName,
+    @Query("SELECT c FROM Channel c JOIN FETCH c.workspace WHERE c.workspace.id = :workspaceId AND c.name = :channelName")
+    Optional<Channel> findChannelWithWorkspaceById(
+            @Param("workspaceId") Long workspaceId,
             @Param("channelName") String channelName);
 }

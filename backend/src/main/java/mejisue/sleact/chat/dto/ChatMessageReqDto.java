@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ChatMessageReqDto {
 
-    private String workspace;
+    private Long workspaceId;
     private String content;
 }
