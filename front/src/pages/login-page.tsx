@@ -76,6 +76,10 @@ export default function LoginPage() {
                 아직 회원이 아니신가요 ? &nbsp;
                 <a href="/signup" > 회원가입 하러가기 </a>
             </LinkContainer>
+            <LinkContainer>
+                비밀번호를 잃어버리셨나요? &nbsp;
+                <a href="/forgot-password">비밀번호 재설정하기</a>
+            </LinkContainer>
         </div>
     );
 };
