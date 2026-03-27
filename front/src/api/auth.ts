@@ -19,3 +19,7 @@ export const requestPasswordReset = (email: string) =>
 
 export const confirmPasswordReset = (token: string, password: string) =>
     api.post('/users/password-reset/confirm', { token, password });
+
+export const logout = () => api.post('/users/logout');
+
+export const getMe = () => api.get('/users');

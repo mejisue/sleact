@@ -4,16 +4,19 @@ import './App.css'
 import LoginPage from './pages/login-page'
 import ForgotPasswordPage from './pages/forgot-password-page'
 import ResetPasswordPage from './pages/reset-password-page'
+import AuthProvider from './providers/AuthProvider'
 
 function App() {
 
   return (
-    <Routes>
-      <Route path="/signup" element={<SignUpPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+      </Routes>
+    </AuthProvider>
   )
 }
 
