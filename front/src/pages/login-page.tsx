@@ -1,17 +1,12 @@
 import useInput from '../hooks/useInput';
 import { Button, Error, Form, Header, Input, Label, LinkContainer } from './sign-up-page.styles';
 import { AxiosError } from 'axios';
-import { useCallback, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
+import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { login } from '@/api/auth';
 import { toast } from 'sonner';
-
-interface JwtPayload {
-    sub?: string;
-    role?: string;
-}
+import { useSetUser } from '@/store/auth';
 
 export default function LoginPage() {
 
@@ -20,23 +15,19 @@ export default function LoginPage() {
     const [password, onChangePassword] = useInput('');
 
     const navigate = useNavigate();
+    const setUser = useSetUser();
 
     const { mutate } = useMutation({
         mutationFn: login,
         onSuccess: (response) => {
-            console.log(response.data);
-            const token = response.data.token;
-            localStorage.setItem('token', token);
-            const decoded = jwtDecode<JwtPayload>(token);
-            localStorage.setItem('role', decoded.role ?? '');
-            localStorage.setItem('email', decoded.sub ?? '');
+            const { email, role, nickname } = response.data;
+            setUser({ email, role, nickname });
             navigate('/workspace/sleact/channel/일반');
         },
         onError: (error) => {
             toast.error("이메일이나 비밀번호가 일치하지 않습니다!", {
                 position: "top-center"
             })
-            console.dir(error);
             const axiosError = error as AxiosError;
             setLogInError(axiosError.response?.status === 400 || axiosError.response?.status === 401);
         }
@@ -47,11 +38,6 @@ export default function LoginPage() {
             setLogInError(false);
             mutate({ email, password })
         }, [email, password, mutate]);
-
-    if (localStorage.getItem('token')) {
-        // console.log('로그인됨');
-        return <Navigate to="/workspace/sleact/channel/일반" />;
-    }
 
     return (
         <div id="container" >

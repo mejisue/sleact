@@ -34,6 +34,7 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.containsString;
 
 @WebMvcTest(UserController.class)
 @Import(SecurityConfig.class)
@@ -95,7 +96,7 @@ class UserControllerTest {
     // =====================
 
     @Test
-    @DisplayName("로그인 성공 시 200과 JWT 토큰 및 유저 정보 반환")
+    @DisplayName("로그인 성공 시 200과 유저 정보 반환 및 HttpOnly Cookie 발급")
     void login_success() throws Exception {
         // given
         UserLoginReqDto dto = new UserLoginReqDto("test@test.com", "password123");
@@ -115,9 +116,21 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("mocked.jwt.token"))
-                .andExpect(jsonPath("$.user.email").value("test@test.com"))
-                .andExpect(jsonPath("$.user.nickname").value("테스터"));
+                .andExpect(jsonPath("$.email").value("test@test.com"))
+                .andExpect(jsonPath("$.nickname").value("테스터"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(header().string("Set-Cookie", containsString("token=mocked.jwt.token")))
+                .andExpect(header().string("Set-Cookie", containsString("HttpOnly")));
+    }
+
+    @Test
+    @DisplayName("로그아웃 성공 시 200 반환 및 쿠키 만료")
+    void logout_success() throws Exception {
+        mockMvc.perform(post("/api/users/logout"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("ok"))
+                .andExpect(header().string("Set-Cookie", containsString("token=")))
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")));
     }
 
     @Test

@@ -10,6 +10,7 @@ public class UserResDto {
     private Long id;
     private String nickname;
     private String email;
+    private String role;
     private List<WorkspaceResDto> workspaces;
     /**
      * IWorkspaceDto:
