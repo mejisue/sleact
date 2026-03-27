@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,7 +18,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
-import javax.security.sasl.AuthenticationException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,17 +53,22 @@ public class JwtAuthFilter extends GenericFilterBean {
             }
         }
 
-        String token = httpRequest.getHeader("Authorization");
+        String token = null;
+        Cookie[] cookies = httpRequest.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
         try{
             if(token != null && !token.isEmpty()){
 
-                if(!token.startsWith("Bearer ")){
-                    throw new AuthenticationException("Bearer 형식이 아닙니다.");
-                }
-                String jwtToken = token.substring(7);
-
                 // 토큰 검증 및 claims 추출
-                Claims claims = jwtTokenProvider.getClaims(jwtToken);
+                Claims claims = jwtTokenProvider.getClaims(token);
 
                 // Authentication 객체 생성
                 List<GrantedAuthority> authorities = new ArrayList<>();

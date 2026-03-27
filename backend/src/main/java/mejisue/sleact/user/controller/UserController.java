@@ -8,12 +8,13 @@ import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.user.dto.UserSaveReqDto;
 import mejisue.sleact.user.service.PasswordResetService;
 import mejisue.sleact.user.service.UserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -40,14 +41,32 @@ public class UserController {
      * UserLoginReqDto : email, password
      */
     @PostMapping("/login")
-    public ResponseEntity<?> loginMember(@RequestBody UserLoginReqDto memberLoginDto) {
+    public ResponseEntity<?> loginMember(@RequestBody UserLoginReqDto memberLoginDto, HttpServletResponse response) {
         User member = userService.login(memberLoginDto);
         String jwtToken = jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
         UserResDto userInfo = userService.getUser(member.getEmail());
-        Map<String, Object> loginInfo = new HashMap<>();
-        loginInfo.put("token", jwtToken);
-        loginInfo.put("user", userInfo);
-        return ResponseEntity.ok().body(loginInfo);
+
+        Cookie cookie = new Cookie("token", jwtToken);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24); // 24시간
+        // cookie.setSecure(true); // HTTPS 환경에서 활성화
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok().body(userInfo);
+    }
+
+    /**
+     * 로그아웃
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("token", null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return ResponseEntity.ok().body("ok");
     }
 
     /**

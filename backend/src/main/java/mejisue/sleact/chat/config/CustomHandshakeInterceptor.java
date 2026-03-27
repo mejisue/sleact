@@ -1,5 +1,6 @@
 package mejisue.sleact.chat.config;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,9 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
-import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Component
@@ -32,8 +30,20 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
 
         log.info("Handshake interceptor called");
 
-        String token = getParameterFromQuery(request.getURI(), "token");
-        String workspace = getParameterFromQuery(request.getURI(), "workspace");
+        String token = null;
+        String workspace = null;
+        if (request instanceof ServletServerHttpRequest servletRequest) {
+            Cookie[] cookies = servletRequest.getServletRequest().getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("token".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+            workspace = servletRequest.getServletRequest().getParameter("workspace");
+        }
 
         // 1차 토큰 검증 - WebSocket 연결 수립 전 거부
         if (token == null) {
@@ -61,18 +71,5 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
         }
 
         return super.beforeHandshake(request, response, wsHandler, attributes);
-    }
-
-    private String getParameterFromQuery(URI uri, String paramName) {
-        String query = uri.getQuery();
-        if (query == null) return null;
-
-        for (String pair : query.split("&")) {
-            String[] keyValue = pair.split("=", 2);
-            if (keyValue.length == 2 && paramName.equals(keyValue[0])) {
-                return URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
-            }
-        }
-        return null;
     }
 }
