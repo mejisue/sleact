@@ -1,15 +1,10 @@
+import type { IUser } from '@/types';
 import { create } from 'zustand';
 import { combine, devtools } from 'zustand/middleware';
 
-export interface AuthUser {
-    email: string;
-    role: string;
-    nickname: string;
-}
-
 type State = {
     isLoaded: boolean;
-    user: AuthUser | null;
+    user: IUser | null;
 };
 
 const initialState: State = {
@@ -21,7 +16,7 @@ const useAuthStore = create(
     devtools(
         combine(initialState, (set) => ({
             actions: {
-                setUser: (user: AuthUser | null) => set({ user, isLoaded: true }),
+                setUser: (user: IUser | null) => set({ user, isLoaded: true }),
             },
         })),
         { name: 'authStore' }
