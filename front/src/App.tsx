@@ -5,6 +5,8 @@ import LoginPage from './pages/login-page'
 import ForgotPasswordPage from './pages/forgot-password-page'
 import ResetPasswordPage from './pages/reset-password-page'
 import AuthProvider from './providers/AuthProvider'
+import Workspace from './layouts/Workspace'
+import Channel from './pages/Channel'
 
 function App() {
 
@@ -15,6 +17,9 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/workspace/:workspaceId" element={<Workspace />}>
+          <Route path="channel/:channelName" element={<Channel />} />
+        </Route>
       </Routes>
     </AuthProvider>
   )

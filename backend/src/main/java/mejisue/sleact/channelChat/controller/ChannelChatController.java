@@ -18,11 +18,11 @@ public class ChannelChatController {
     private final ChannelChatService channelChatsService;
 
     /** 워크스페이스 내부의 채널의 채팅을 가져옴 **/
-    @GetMapping("/workspace/{workspaceName}/channels/{channelName}/chats")
+    @GetMapping("/workspace/{workspaceId}/channels/{channelName}/chats")
     public ResponseEntity<List<ChannelChatDto>> getChatsFromWSAndChannel
-            (@PathVariable String workspaceName, @PathVariable String channelName,
+            (@PathVariable Long workspaceId, @PathVariable String channelName,
              @RequestParam("perPage") int perPage,@RequestParam("page") int page){
-        List<ChannelChatDto> channelChatDto = channelChatsService.getChatsfromWSAndChannel(workspaceName, channelName, perPage, page);
+        List<ChannelChatDto> channelChatDto = channelChatsService.getChatsfromWSAndChannel(workspaceId, channelName, perPage, page);
         return ResponseEntity.ok(channelChatDto);
     }
 

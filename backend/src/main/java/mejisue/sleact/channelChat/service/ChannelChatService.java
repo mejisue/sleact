@@ -31,10 +31,10 @@ public class ChannelChatService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<ChannelChatDto> getChatsfromWSAndChannel(String workspaceName, String channelName, int perPage, int page) {
-        log.info("채팅 목록 조회 | workspace: {}, channel: {}, page: {}", workspaceName, channelName, page);
+    public List<ChannelChatDto> getChatsfromWSAndChannel(Long workspaceId, String channelName, int perPage, int page) {
+        log.info("채팅 목록 조회 | workspaceId: {}, channel: {}, page: {}", workspaceId, channelName, page);
 
-        Channel channel = channelRepository.findChannelWithWorkspaceByName(workspaceName, channelName)
+        Channel channel = channelRepository.findChannelWithWorkspaceById(workspaceId, channelName)
                 .orElseThrow(() -> new EntityNotFoundException("채널을 찾을 수 없습니다: " + channelName));
 
         Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by("createdAt").descending());
@@ -46,8 +46,8 @@ public class ChannelChatService {
                 .collect(Collectors.toList());
     }
 
-    public ChannelChatDto postChatFromWSAndChannel(String workspaceName, String channelName, String content, String email) {
-        Channel channel = channelRepository.findChannelWithWorkspaceByName(workspaceName, channelName)
+    public ChannelChatDto postChatFromWSAndChannel(Long workspaceId, String channelName, String content, String email) {
+        Channel channel = channelRepository.findChannelWithWorkspaceById(workspaceId, channelName)
                 .orElseThrow(() -> new EntityNotFoundException("채널을 찾을 수 없습니다: " + channelName));
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + email));

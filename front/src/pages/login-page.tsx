@@ -5,6 +5,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { login } from '@/api/auth';
+import { getWorkspaces } from '@/api/workspace';
 import { toast } from 'sonner';
 import { useSetUser } from '@/store/auth';
 
@@ -19,10 +20,16 @@ export default function LoginPage() {
 
     const { mutate } = useMutation({
         mutationFn: login,
-        onSuccess: (response) => {
-            const { email, role, nickname } = response.data;
-            setUser({ email, role, nickname });
-            navigate('/workspace/sleact/channel/일반');
+        onSuccess: async (response) => {
+            const { id, email, role, nickname } = response.data;
+            setUser({ id, email, role, nickname });
+            const workspacesRes = await getWorkspaces();
+            const first = workspacesRes.data[0];
+            if (first) {
+                navigate(`/workspace/${first.id}/channel/일반`);
+            } else {
+                navigate('/workspace');
+            }
         },
         onError: (error) => {
             toast.error("이메일이나 비밀번호가 일치하지 않습니다!", {
