@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +60,8 @@ public class WorkspaceService {
 
     /**
      * 워크스페이스로 멤버 초대하기
+     * - 워크스페이스 + 기본(일반) 채널에 자동 추가
+     * - dto.channelNames 에 지정된 추가 채널에도 함께 추가 (선택사항)
      **/
     public void inviteMembersToWorkspace(Long workspaceId, InviteMemberDto dto) {
         Workspace targetWorkspace = workspaceRepository.findById(workspaceId)
@@ -77,10 +80,33 @@ public class WorkspaceService {
                 .loggedInAt(LocalDateTime.now())
                 .build());
 
-        // 기본(일반) 채널에도 멤버 추가
+        // 기본(일반) 채널에 자동 추가
         Channel defaultChannel = channelsRepository.findByWorkspaceAndName(targetWorkspace, "일반")
                 .orElseThrow(() -> new EntityNotFoundException("기본 채널을 찾을 수 없습니다."));
         channelMembersRepository.save(ChannelMember.builder().channel(defaultChannel).user(targetUser).build());
+
+        // 선택된 추가 채널에도 추가 (존재하지 않는 채널은 경고 로그 후 건너뜀)
+        List<String> extraChannels = dto.getChannelNames();
+        if (extraChannels != null && !extraChannels.isEmpty()) {
+            String inviteeEmail = targetUser.getEmail();
+            for (String channelName : extraChannels) {
+                if ("일반".equals(channelName)) continue;
+                var channelOpt = channelsRepository.findByWorkspaceAndName(targetWorkspace, channelName);
+                if (channelOpt.isEmpty()) {
+                    log.warn("존재하지 않는 채널 이름이 초대 요청에 포함됨: '{}' (workspaceId={})", channelName, workspaceId);
+                    continue;
+                }
+                Channel extraChannel = channelOpt.get();
+                boolean alreadyMember = channelMembersRepository
+                        .findByChannelIdAndUserEmail(extraChannel.getId(), inviteeEmail)
+                        .isPresent();
+                if (!alreadyMember) {
+                    channelMembersRepository.save(
+                            ChannelMember.builder().channel(extraChannel).user(targetUser).build());
+                    log.info("채널 '{}' 에 멤버 추가: {}", channelName, inviteeEmail);
+                }
+            }
+        }
 
         log.info("invite To Workspace! {} member: {}", targetWorkspace.getName(), targetUser.getNickname());
     }
