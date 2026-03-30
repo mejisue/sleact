@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -204,6 +205,115 @@ class WorkspaceServiceTest {
                 .hasMessage("이미 회원이 워크스페이스에 소속되어 있습니다.");
 
         verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("channelNames 지정 시 추가 채널에도 멤버 추가")
+    void inviteMembersToWorkspace_withExtraChannels_savesChannelMembers() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        Channel devChannel = Channel.builder().id(20L).name("개발").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("개발"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+        given(channelsRepository.findByWorkspaceAndName(workspace, "개발")).willReturn(Optional.of(devChannel));
+        given(channelMembersRepository.findByChannelIdAndUserEmail(20L, "invitee@test.com")).willReturn(Optional.empty());
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then: 기본 채널(일반) + 추가 채널(개발) = 총 2회 저장
+        verify(channelMembersRepository, times(2)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("channelNames에 '일반'이 포함된 경우 중복 추가하지 않음")
+    void inviteMembersToWorkspace_withDefaultChannelInList_skipsDefaultChannel() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("일반"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then: 기본 채널(일반) 1회만 저장
+        verify(channelMembersRepository, times(1)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("channelNames에 존재하지 않는 채널명이 있으면 예외 없이 건너뜀")
+    void inviteMembersToWorkspace_withNonExistentChannel_skipsGracefully() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("없는채널"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+        given(channelsRepository.findByWorkspaceAndName(workspace, "없는채널")).willReturn(Optional.empty());
+
+        // when & then: 예외 없이 정상 종료
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> workspaceService.inviteMembersToWorkspace(1L, dto));
+
+        // 기본 채널(일반)만 저장
+        verify(channelMembersRepository, times(1)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("초대 대상자가 이미 추가 채널 멤버이면 중복 저장하지 않음")
+    void inviteMembersToWorkspace_alreadyChannelMember_skipsChannelSave() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        Channel devChannel = Channel.builder().id(20L).name("개발").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("개발"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+        given(channelsRepository.findByWorkspaceAndName(workspace, "개발")).willReturn(Optional.of(devChannel));
+        given(channelMembersRepository.findByChannelIdAndUserEmail(20L, "invitee@test.com"))
+                .willReturn(Optional.of(ChannelMember.builder().channel(devChannel).user(invitee).build()));
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then: 기본 채널(일반)만 저장, 개발 채널은 이미 멤버이므로 저장 안 함
+        verify(channelMembersRepository, times(1)).save(any(ChannelMember.class));
     }
 
     @Test
