@@ -68,7 +68,7 @@ class ChannelChatServiceTest {
         ChannelChatDto dto2 = new ChannelChatDto();
         dto2.setContent("두 번째 메시지");
 
-        given(channelRepository.findChannelWithWorkspaceByName("테스트워크스페이스", "일반"))
+        given(channelRepository.findChannelWithWorkspaceById(1L, "일반"))
                 .willReturn(Optional.of(channel));
         given(channelChatRepository.findByChannelId(eq(10L), any(Pageable.class)))
                 .willReturn(page);
@@ -77,7 +77,7 @@ class ChannelChatServiceTest {
 
         // when
         List<ChannelChatDto> result = channelChatService.getChatsfromWSAndChannel(
-                "테스트워크스페이스", "일반", 20, 1);
+                1L, "일반", 20, 1);
 
         // then
         assertThat(result).hasSize(2);
@@ -93,14 +93,14 @@ class ChannelChatServiceTest {
         Workspace workspace = Workspace.builder().id(1L).name("테스트워크스페이스").url("test-ws").owner(user).build();
         Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
 
-        given(channelRepository.findChannelWithWorkspaceByName("테스트워크스페이스", "일반"))
+        given(channelRepository.findChannelWithWorkspaceById(1L, "일반"))
                 .willReturn(Optional.of(channel));
         given(channelChatRepository.findByChannelId(eq(10L), any(Pageable.class)))
                 .willReturn(Page.empty());
 
         // when
         List<ChannelChatDto> result = channelChatService.getChatsfromWSAndChannel(
-                "테스트워크스페이스", "일반", 20, 1);
+                1L, "일반", 20, 1);
 
         // then
         assertThat(result).isEmpty();
@@ -110,12 +110,12 @@ class ChannelChatServiceTest {
     @DisplayName("채팅 목록 조회 시 존재하지 않는 채널이면 EntityNotFoundException 발생")
     void getChatsfromWSAndChannel_channelNotFound_throwsEntityNotFoundException() {
         // given
-        given(channelRepository.findChannelWithWorkspaceByName("테스트워크스페이스", "없는채널"))
+        given(channelRepository.findChannelWithWorkspaceById(1L, "없는채널"))
                 .willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> channelChatService.getChatsfromWSAndChannel(
-                "테스트워크스페이스", "없는채널", 20, 1))
+                1L, "없는채널", 20, 1))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("없는채널");
     }
@@ -138,7 +138,7 @@ class ChannelChatServiceTest {
         expectedDto.setUserId(1L);
         expectedDto.setChannelId(10L);
 
-        given(channelRepository.findChannelWithWorkspaceByName("테스트워크스페이스", "일반"))
+        given(channelRepository.findChannelWithWorkspaceById(1L, "일반"))
                 .willReturn(Optional.of(channel));
         given(userRepository.findByEmail("user@test.com"))
                 .willReturn(Optional.of(user));
@@ -147,7 +147,7 @@ class ChannelChatServiceTest {
 
         // when
         ChannelChatDto result = channelChatService.postChatFromWSAndChannel(
-                "테스트워크스페이스", "일반", "안녕하세요", "user@test.com");
+                1L, "일반", "안녕하세요", "user@test.com");
 
         // then
         assertThat(result.getContent()).isEqualTo("안녕하세요");
@@ -160,12 +160,12 @@ class ChannelChatServiceTest {
     @DisplayName("존재하지 않는 채널로 메시지 전송 시 EntityNotFoundException 발생")
     void postChatFromWSAndChannel_channelNotFound_throwsEntityNotFoundException() {
         // given
-        given(channelRepository.findChannelWithWorkspaceByName("테스트워크스페이스", "없는채널"))
+        given(channelRepository.findChannelWithWorkspaceById(1L, "없는채널"))
                 .willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> channelChatService.postChatFromWSAndChannel(
-                "테스트워크스페이스", "없는채널", "안녕하세요", "user@test.com"))
+                1L, "없는채널", "안녕하세요", "user@test.com"))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("없는채널");
     }
@@ -178,14 +178,14 @@ class ChannelChatServiceTest {
         Workspace workspace = Workspace.builder().id(1L).name("테스트워크스페이스").url("test-ws").owner(owner).build();
         Channel channel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
 
-        given(channelRepository.findChannelWithWorkspaceByName("테스트워크스페이스", "일반"))
+        given(channelRepository.findChannelWithWorkspaceById(1L, "일반"))
                 .willReturn(Optional.of(channel));
         given(userRepository.findByEmail("ghost@test.com"))
                 .willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> channelChatService.postChatFromWSAndChannel(
-                "테스트워크스페이스", "일반", "안녕하세요", "ghost@test.com"))
+                1L, "일반", "안녕하세요", "ghost@test.com"))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("ghost@test.com");
     }
