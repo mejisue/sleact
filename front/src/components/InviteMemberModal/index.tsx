@@ -1,19 +1,13 @@
 import { inviteMember } from '@/api/workspace';
 import { getChannels } from '@/api/channel';
 import { useInviteModalOpen, useModalActions } from '@/store/modal';
+import { getKoreanParticle } from '@/utils/koreanParticle';
 import { useQuery } from '@tanstack/react-query';
 import { Hash, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import styled from 'styled-components';
-
-function getKoreanParticle(name: string) {
-  if (!name) return '으로';
-  const code = name.charCodeAt(name.length - 1);
-  if (code < 0xac00 || code > 0xd7a3) return '으로';
-  return (code - 0xac00) % 28 === 0 ? '로' : '으로';
-}
 
 // ─── Styled Components ──────────────────────────────────────────────
 
