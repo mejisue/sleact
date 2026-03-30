@@ -283,3 +283,69 @@ export const Chats = styled.div`
   flex-direction: column;
   overflow: hidden;
 `;
+
+export const AddButtonWrapper = styled.div`
+  position: relative;
+  margin-top: auto;
+`;
+
+export const DropdownMenu = styled.div`
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: #1a1d21;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  padding: 6px;
+  min-width: 200px;
+  z-index: 200;
+`;
+
+export const DropdownHeader = styled.p`
+  margin: 0;
+  padding: 6px 10px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+export const DropdownItem = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+`;
+
+export const DropdownIconBox = styled.div<{ $bg: string }>`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: ${({ $bg }) => $bg};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+`;
+
+export const DropdownDivider = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+`;
