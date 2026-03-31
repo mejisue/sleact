@@ -1,29 +1,26 @@
-import { getChannelChats, getChannelMembers } from '@/api/channel';
+import { getChannelChats } from '@/api/channel';
 import ChatBox from '@/components/ChatBox';
 import ChatList from '@/components/ChatList';
+import InviteChannelMemberModal from '@/components/InviteChannelMemberModal';
 import { useChannelChat } from '@/hooks/useChannelChat';
+import { useModalActions } from '@/store/modal';
 import { useUser } from '@/store/auth';
 import makeSection from '@/utils/makeSection';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Hash } from 'lucide-react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { Hash, UserPlus } from 'lucide-react';
 import { useCallback, useState, type ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Header } from './styles';
+import { Container, Header, InviteButton } from './styles';
 
 const PAGE_SIZE = 20;
 
 const Channel = () => {
   const { workspaceId, channelName } = useParams<{ workspaceId: string; channelName: string }>();
   const user = useUser();
+  const { openInviteChannelMemberModal } = useModalActions();
   const [chat, setChat] = useState('');
 
   const { realTimeChats, sendMessage } = useChannelChat(Number(workspaceId), channelName ?? '');
-
-  const { data: channelMembers } = useQuery({
-    queryKey: ['channelMembers', workspaceId, channelName],
-    queryFn: () => getChannelMembers(Number(workspaceId), channelName!).then((res) => res.data),
-    enabled: !!workspaceId && !!channelName,
-  });
 
   const {
     data: chatPages,
@@ -57,14 +54,14 @@ const Channel = () => {
 
   return (
     <Container>
+      <InviteChannelMemberModal />
       <Header>
         <Hash size={18} style={{ opacity: 0.7 }} />
         <span>{channelName}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-          <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.5)' }}>
-            {channelMembers?.length}명
-          </span>
-        </div>
+        <InviteButton onClick={openInviteChannelMemberModal}>
+          <UserPlus size={14} />
+          팀원 초대하기
+        </InviteButton>
       </Header>
       <ChatList
         chatSections={chatSections}
