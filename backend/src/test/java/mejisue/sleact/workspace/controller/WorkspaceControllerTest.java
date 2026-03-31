@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import mejisue.sleact.common.auth.JwtTokenProvider;
 import mejisue.sleact.common.config.SecurityConfig;
+import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.workspace.dto.InviteMemberDto;
 import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
 import mejisue.sleact.workspace.dto.WorkspaceResDto;
@@ -207,6 +208,51 @@ class WorkspaceControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("이미 회원이 워크스페이스에 소속되어 있습니다."));
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 목록 조회 성공 시 200과 멤버 목록 반환")
+    @WithMockUser(username = "test@test.com")
+    void getMyWorkspaceMembers_success() throws Exception {
+        // given
+        UserResDto member1 = new UserResDto();
+        member1.setEmail("a@test.com");
+        member1.setNickname("유저1");
+
+        UserResDto member2 = new UserResDto();
+        member2.setEmail("b@test.com");
+        member2.setNickname("유저2");
+
+        given(workspaceService.findMembersInWorkspace(1L)).willReturn(List.of(member1, member2));
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/members"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].email").value("a@test.com"))
+                .andExpect(jsonPath("$[1].email").value("b@test.com"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 멤버 목록 조회 시 404 반환")
+    @WithMockUser(username = "test@test.com")
+    void getMyWorkspaceMembers_workspaceNotFound_returns404() throws Exception {
+        // given
+        willThrow(new EntityNotFoundException("workspace(id=999)가 존재하지 않습니다."))
+                .given(workspaceService).findMembersInWorkspace(999L);
+
+        // when & then
+        mockMvc.perform(get("/api/workspace/999/members"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("workspace(id=999)가 존재하지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("인증 없이 멤버 목록 조회 시 403 반환")
+    void getMyWorkspaceMembers_unauthenticated_returns403() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/workspace/1/members"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

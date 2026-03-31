@@ -5,8 +5,11 @@ import mejisue.sleact.channel.domain.Channel;
 import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
+import mejisue.sleact.chat.service.PresenceService;
 import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.user.repository.UserRepository;
+import mejisue.sleact.user.service.UserMapper;
 import mejisue.sleact.workspace.domain.Workspace;
 import mejisue.sleact.workspace.dto.InviteMemberDto;
 import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
@@ -23,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -55,6 +59,121 @@ class WorkspaceServiceTest {
 
     @Mock
     private ChannelMemberRepository channelMembersRepository;
+
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private PresenceService presenceService;
+
+    @Test
+    @DisplayName("워크스페이스 멤버 목록 조회 성공")
+    void findMembersInWorkspace_success() {
+        // given
+        User user1 = User.builder().email("a@test.com").nickname("유저1").build();
+        User user2 = User.builder().email("b@test.com").nickname("유저2").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user1).build();
+
+        WorkspaceMember wm1 = WorkspaceMember.builder().workspace(workspace).user(user1).build();
+        WorkspaceMember wm2 = WorkspaceMember.builder().workspace(workspace).user(user2).build();
+
+        UserResDto dto1 = new UserResDto();
+        dto1.setEmail("a@test.com");
+        dto1.setNickname("유저1");
+
+        UserResDto dto2 = new UserResDto();
+        dto2.setEmail("b@test.com");
+        dto2.setNickname("유저2");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceId(1L)).willReturn(List.of(wm1, wm2));
+        given(userMapper.toUserDto(user1)).willReturn(dto1);
+        given(userMapper.toUserDto(user2)).willReturn(dto2);
+
+        // when
+        List<UserResDto> result = workspaceService.findMembersInWorkspace(1L);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting("email").containsExactly("a@test.com", "b@test.com");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 조회 시 EntityNotFoundException 발생")
+    void findMembersInWorkspace_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.findMembersInWorkspace(999L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+
+        verify(workspaceMemberRepository, never()).findByWorkspaceId(anyLong());
+    }
+
+    @Test
+    @DisplayName("워크스페이스에 멤버가 없으면 빈 목록 반환")
+    void findMembersInWorkspace_noMembers_returnsEmptyList() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceId(1L)).willReturn(List.of());
+
+        // when
+        List<UserResDto> result = workspaceService.findMembersInWorkspace(1L);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("온라인 멤버 조회 성공")
+    void getOnlineMembers_success() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(presenceService.getOnlineEmails("1")).willReturn(Set.of("a@test.com", "b@test.com"));
+
+        // when
+        Set<String> result = workspaceService.getOnlineMembers(1L);
+
+        // then
+        assertThat(result).containsExactlyInAnyOrder("a@test.com", "b@test.com");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 온라인 멤버 조회 시 EntityNotFoundException 발생")
+    void getOnlineMembers_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.getOnlineMembers(999L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("온라인 멤버가 없으면 빈 Set 반환")
+    void getOnlineMembers_noOnlineMembers_returnsEmptySet() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(presenceService.getOnlineEmails("1")).willReturn(Set.of());
+
+        // when
+        Set<String> result = workspaceService.getOnlineMembers(1L);
+
+        // then
+        assertThat(result).isEmpty();
+    }
 
     @Test
     @DisplayName("워크스페이스 생성 성공")
