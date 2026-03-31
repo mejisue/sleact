@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mejisue.sleact.channelChat.dto.ChannelChatDto;
+import mejisue.sleact.dm.dto.DmDto;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,11 +39,12 @@ public class RedisPubSubService implements MessageListener {
             if (channel.startsWith("/topic/chat/channel/")) {
                 ChannelChatDto dto = objectMapper.readValue(payload, ChannelChatDto.class);
                 messagingTemplate.convertAndSend(channel, dto);
-            } else {
-                // TODO: feat/dm-chat 브랜치에서 DM DTO 분기 처리 구현
-                messagingTemplate.convertAndSend(channel, payload);
+            } else if (channel.startsWith("/queue/chat/dm/")) {
+                DmDto dto = objectMapper.readValue(payload, DmDto.class);
+                messagingTemplate.convertAndSend(channel, dto);
             }
         } catch (IOException e) {
+
             log.error("Redis 메시지 역직렬화 실패 | channel: {}", channel, e);
         }
     }

@@ -1,8 +1,6 @@
-import type { IChat } from '@/types';
-
-const makeSection = (chatList: IChat[]): Record<string, IChat[]> => {
-  return chatList.reduce<Record<string, IChat[]>>((sections, chat) => {
-    const date = new Date(chat.createdAt).toLocaleDateString('ko-KR', {
+const makeSection = <T extends { createdAt: string }>(list: T[]): Record<string, T[]> => {
+  return list.reduce<Record<string, T[]>>((sections, item) => {
+    const date = new Date(item.createdAt).toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -10,7 +8,7 @@ const makeSection = (chatList: IChat[]): Record<string, IChat[]> => {
     if (!sections[date]) {
       sections[date] = [];
     }
-    sections[date].push(chat);
+    sections[date].push(item);
     return sections;
   }, {});
 };
