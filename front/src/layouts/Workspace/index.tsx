@@ -251,7 +251,11 @@ function WorkspaceLayout() {
                 {workspaceMembers
                   .filter((m) => m.id !== user.id)
                   .map((member) => (
-                    <DmItem key={member.id}>
+                    <DmItem
+                      key={member.id}
+                      as={Link}
+                      to={`/workspace/${workspaceId}/dm/${member.id}`}
+                    >
                       <DmAvatar $color={getAvatarColor(member.id)}>
                         {member.nickname.slice(0, 1).toUpperCase()}
                       </DmAvatar>

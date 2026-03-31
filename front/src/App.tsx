@@ -7,6 +7,7 @@ import ResetPasswordPage from './pages/reset-password-page'
 import AuthProvider from './providers/AuthProvider'
 import Workspace from './layouts/Workspace'
 import Channel from './pages/Channel'
+import DirectMessage from './pages/DirectMessage'
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/workspace/:workspaceId" element={<Workspace />}>
           <Route path="channel/:channelName" element={<Channel />} />
+          <Route path="dm/:userId" element={<DirectMessage />} />
         </Route>
       </Routes>
     </AuthProvider>

@@ -25,3 +25,13 @@ export interface IChat {
   user: IUser;
   channelId: number;
 }
+
+export interface IDm {
+  id: number;
+  content: string;
+  createdAt: string;
+  sender: IUser;
+  receiver: IUser;
+  senderId: number;
+  receiverId: number;
+}

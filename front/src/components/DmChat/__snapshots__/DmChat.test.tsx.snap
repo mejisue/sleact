@@ -1,0 +1,197 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DmChat > myUserId가 senderId와 같으면 내 메시지로 판단한다 (isMine=true) 1`] = `
+<div
+  class="sc-aXZVf iuarqd"
+>
+  <svg
+    fill="none"
+    height="36"
+    role="img"
+    viewBox="0 0 36 36"
+    width="36"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <mask
+      height="36"
+      id="_r_3_"
+      maskUnits="userSpaceOnUse"
+      width="36"
+      x="0"
+      y="0"
+    >
+      <rect
+        fill="#FFFFFF"
+        height="36"
+        rx="72"
+        width="36"
+      />
+    </mask>
+    <g
+      mask="url(#_r_3_)"
+    >
+      <rect
+        fill="#92A1C6"
+        height="36"
+        width="36"
+      />
+      <rect
+        fill="#F0AB3D"
+        height="36"
+        rx="6"
+        transform="translate(6 6) rotate(212 18 18) scale(1.2)"
+        width="36"
+        x="0"
+        y="0"
+      />
+      <g
+        transform="translate(4 5) rotate(2 18 18)"
+      >
+        <path
+          d="M13,21 a1,0.75 0 0,0 10,0"
+          fill="#000000"
+        />
+        <rect
+          fill="#000000"
+          height="2"
+          rx="1"
+          stroke="none"
+          width="1.5"
+          x="12"
+          y="14"
+        />
+        <rect
+          fill="#000000"
+          height="2"
+          rx="1"
+          stroke="none"
+          width="1.5"
+          x="22"
+          y="14"
+        />
+      </g>
+    </g>
+  </svg>
+  <div
+    class="sc-gEvEes dWLACq"
+  >
+    <div
+      class="sc-eqUAAB ifza-dV"
+    >
+      <span
+        class="sc-fqkvVO lnzzh"
+      >
+        발신자
+      </span>
+      <span
+        class="sc-dcJsrX gdOmqT"
+      >
+        오후 02:30
+      </span>
+    </div>
+    <p
+      class="sc-iGgWBk fnmoNP"
+    >
+      안녕하세요
+    </p>
+  </div>
+</div>
+`;
+
+exports[`DmChat > myUserId가 senderId와 다르면 상대방 메시지로 판단한다 (isMine=false) 1`] = `
+<div
+  class="sc-aXZVf iOMoXk"
+>
+  <svg
+    fill="none"
+    height="36"
+    role="img"
+    viewBox="0 0 36 36"
+    width="36"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <mask
+      height="36"
+      id="_r_4_"
+      maskUnits="userSpaceOnUse"
+      width="36"
+      x="0"
+      y="0"
+    >
+      <rect
+        fill="#FFFFFF"
+        height="36"
+        rx="72"
+        width="36"
+      />
+    </mask>
+    <g
+      mask="url(#_r_4_)"
+    >
+      <rect
+        fill="#92A1C6"
+        height="36"
+        width="36"
+      />
+      <rect
+        fill="#F0AB3D"
+        height="36"
+        rx="6"
+        transform="translate(6 6) rotate(212 18 18) scale(1.2)"
+        width="36"
+        x="0"
+        y="0"
+      />
+      <g
+        transform="translate(4 5) rotate(2 18 18)"
+      >
+        <path
+          d="M13,21 a1,0.75 0 0,0 10,0"
+          fill="#000000"
+        />
+        <rect
+          fill="#000000"
+          height="2"
+          rx="1"
+          stroke="none"
+          width="1.5"
+          x="12"
+          y="14"
+        />
+        <rect
+          fill="#000000"
+          height="2"
+          rx="1"
+          stroke="none"
+          width="1.5"
+          x="22"
+          y="14"
+        />
+      </g>
+    </g>
+  </svg>
+  <div
+    class="sc-gEvEes iDZsox"
+  >
+    <div
+      class="sc-eqUAAB jOerfs"
+    >
+      <span
+        class="sc-fqkvVO lnzzh"
+      >
+        발신자
+      </span>
+      <span
+        class="sc-dcJsrX gdOmqT"
+      >
+        오후 02:30
+      </span>
+    </div>
+    <p
+      class="sc-iGgWBk kYzkNo"
+    >
+      안녕하세요
+    </p>
+  </div>
+</div>
+`;
