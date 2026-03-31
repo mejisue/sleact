@@ -14,3 +14,6 @@ export const getChannelMembers = (workspaceId: number, channelName: string) =>
 
 export const createChannel = (workspaceId: number, data: { name: string }) =>
   api.post(`/workspace/${workspaceId}/channels`, data);
+
+export const inviteMemberToChannel = (workspaceId: number, channelName: string, data: { email: string }) =>
+  api.post(`/workspace/${workspaceId}/channels/${channelName}/members`, data);
