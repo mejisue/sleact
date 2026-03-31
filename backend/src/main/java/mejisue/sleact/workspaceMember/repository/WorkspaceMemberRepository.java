@@ -14,6 +14,9 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws where wm.user.id = :userId")
     List<WorkspaceMember> findByUserId(@Param("userId") Long userId);
 
+    @Query("select wm from WorkspaceMember wm join fetch wm.user u where wm.workspace.id = :workspaceId")
+    List<WorkspaceMember> findByWorkspaceId(@Param("workspaceId") Long workspaceId);
+
     @Query("select wm from WorkspaceMember wm join fetch wm.workspace ws join fetch wm.user u where u.id = :userId and ws.id = :workspaceId")
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(@Param("workspaceId") Long workspaceId, @Param("userId") Long userId);
 

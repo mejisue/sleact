@@ -1,6 +1,7 @@
 package mejisue.sleact.workspace.controller;
 
 import lombok.RequiredArgsConstructor;
+import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.workspace.dto.InviteMemberDto;
 import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
 import mejisue.sleact.workspace.dto.WorkspaceResDto;
@@ -11,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/workspace")
@@ -38,6 +40,19 @@ public class WorkspaceController {
     public ResponseEntity<?> inviteMembersToWorkspace(@PathVariable Long workspaceId, @RequestBody InviteMemberDto dto) {
         workspacesService.inviteMembersToWorkspace(workspaceId, dto);
         return ResponseEntity.ok("ok");
+    }
+
+    /** 워크스페이스 내부의 멤버 목록 가져오기 **/
+    @GetMapping("/{workspaceId}/members")
+    public ResponseEntity<List<UserResDto>> getMyWorkspaceMembers(@PathVariable Long workspaceId) {
+        List<UserResDto> membersInWorkspace = workspacesService.findMembersInWorkspace(workspaceId);
+        return ResponseEntity.ok(membersInWorkspace);
+    }
+
+    /** 워크스페이스 온라인 멤버 조회 **/
+    @GetMapping("/{workspaceId}/members/online")
+    public ResponseEntity<Set<String>> getOnlineMembers(@PathVariable Long workspaceId) {
+        return ResponseEntity.ok(workspacesService.getOnlineMembers(workspaceId));
     }
 
     /** 워크스페이스에서 나가기 **/
