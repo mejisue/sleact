@@ -8,6 +8,8 @@ import mejisue.sleact.channelChat.dto.ChannelChatDto;
 import mejisue.sleact.channelChat.service.ChannelChatService;
 import mejisue.sleact.chat.dto.ChatMessageReqDto;
 import mejisue.sleact.chat.service.RedisPubSubService;
+import mejisue.sleact.dm.dto.DmDto;
+import mejisue.sleact.dm.service.DmService;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -21,6 +23,7 @@ public class StompController {
     private final ChannelChatService channelChatService;
     private final ObjectMapper objectMapper;
     private final RedisPubSubService pubSubService;
+    private final DmService dmService;
 
     @MessageMapping("/chat/channel/{channelName}")
     public void sendChannelMessage(
@@ -40,6 +43,24 @@ public class StompController {
     }
 
     @MessageMapping("/chat/dm/{userId}")
-    public void sendDmMessage(@DestinationVariable Long userId, ChatMessageReqDto dto) {
+    public void sendDmMessage(
+            @DestinationVariable Long userId, DmDto dto, SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            Long workspaceId = Long.parseLong((String) headerAccessor.getSessionAttributes().get("workspace"));
+            String email = (String) headerAccessor.getSessionAttributes().get("email");
+            log.info("dm 메시지 수신 | receiverId: {}, workspaceId: {}, email: {}, content: {}",
+                    userId, workspaceId, email, dto.getContent());
+
+            DmDto dm = dmService.createDm(workspaceId, dto.getReceiverId(), dto.getContent(), email);
+            log.info("dm 저장 완료 | id: {}, senderId: {}, receiverId: {}", dm.getId(), dm.getSenderId(), dm.getReceiverId());
+
+            String messageJson = objectMapper.writeValueAsString(dm);
+            pubSubService.publish("/queue/chat/dm/" + dm.getSenderId(), messageJson);
+            pubSubService.publish("/queue/chat/dm/" + dm.getReceiverId(), messageJson);
+            log.info("dm Redis 발행 완료");
+
+        } catch (Exception e) {
+            log.error("dm 처리 중 오류 발생", e);
+        }
     }
 }

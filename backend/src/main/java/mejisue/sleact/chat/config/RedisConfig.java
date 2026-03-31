@@ -41,7 +41,7 @@ public class RedisConfig {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(redisPubSubService, new PatternTopic("/topic/chat/channel/*"));
-        // TODO: feat/dm-chat 브랜치에서 DM 토픽 구독 추가
+        container.addMessageListener(redisPubSubService, new PatternTopic("/queue/chat/dm/*"));
         return container;
     }
 }
