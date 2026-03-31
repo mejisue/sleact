@@ -11,13 +11,15 @@ const StompContext = createContext<StompContextType>({ client: null, isConnected
 
 export const useStompClient = () => useContext(StompContext);
 
-export default function StompProvider({ children }: { children: ReactNode }) {
+export default function StompProvider({ children, workspaceId }: { children: ReactNode; workspaceId?: string }) {
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    if (!workspaceId) return;
+
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/connect'),
+      webSocketFactory: () => new SockJS(`http://localhost:8080/connect?workspace=${workspaceId}`),
       onConnect: () => setIsConnected(true),
       onDisconnect: () => setIsConnected(false),
       onStompError: (frame) => console.error('STOMP error:', frame),
@@ -29,7 +31,7 @@ export default function StompProvider({ children }: { children: ReactNode }) {
     return () => {
       client.deactivate();
     };
-  }, []);
+  }, [workspaceId]);
 
   return (
     <StompContext.Provider value={{ client: clientRef.current, isConnected }}>
