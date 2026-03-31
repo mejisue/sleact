@@ -8,7 +8,10 @@ import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
 import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.dto.UserResDto;
 import mejisue.sleact.user.repository.UserRepository;
+import mejisue.sleact.chat.service.PresenceService;
+import mejisue.sleact.user.service.UserMapper;
 import mejisue.sleact.workspace.domain.Workspace;
 import mejisue.sleact.workspace.dto.InviteMemberDto;
 import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
@@ -21,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +38,32 @@ public class WorkspaceService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final ChannelRepository channelsRepository;
     private final ChannelMemberRepository channelMembersRepository;
+    private final UserMapper userMapper;
+    private final PresenceService presenceService;
+
+    /**
+     * 워크스페이스 멤버 불러오기
+     **/
+    @Transactional(readOnly = true)
+    public List<UserResDto> findMembersInWorkspace(Long workspaceId) {
+        workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
+
+        return workspaceMemberRepository.findByWorkspaceId(workspaceId)
+                .stream()
+                .map(wm -> userMapper.toUserDto(wm.getUser()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 워크스페이스 온라인 멤버 조회
+     **/
+    @Transactional(readOnly = true)
+    public Set<String> getOnlineMembers(Long workspaceId) {
+        workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
+        return presenceService.getOnlineEmails(workspaceId.toString());
+    }
 
     /**
      * 워크스페이스 만들기
@@ -110,6 +141,7 @@ public class WorkspaceService {
 
         log.info("invite To Workspace! {} member: {}", targetWorkspace.getName(), targetUser.getNickname());
     }
+
 
     /**
      * 워크스페이스에서 나가기
