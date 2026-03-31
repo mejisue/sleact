@@ -61,9 +61,12 @@ public class CustomHandshakeInterceptor extends HttpSessionHandshakeInterceptor 
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return false;
         }
-        if (workspace != null) {
-            attributes.put("workspace", workspace);
+        if (workspace == null || workspace.isBlank()) {
+            log.warn("workspace 파라미터 없음, WebSocket 연결 거부");
+            response.setStatusCode(HttpStatus.BAD_REQUEST);
+            return false;
         }
+        attributes.put("workspace", workspace);
 
         if (request instanceof ServletServerHttpRequest servletRequest) {
             HttpSession session = servletRequest.getServletRequest().getSession();
