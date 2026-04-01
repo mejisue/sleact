@@ -3,7 +3,7 @@ import { useStompClient } from '@/providers/StompProvider';
 import { useUser } from '@/store/auth';
 import { useCallback, useEffect, useState } from 'react';
 
-export const useDm = (workspaceId: number, otherUserId: number) => {
+export const useDm = (_workspaceId: number, otherUserId: number) => {
   const { client, isConnected } = useStompClient();
   const myUserId = useUser()?.id;
   const [realTimeDms, setRealTimeDms] = useState<IDm[]>([]);

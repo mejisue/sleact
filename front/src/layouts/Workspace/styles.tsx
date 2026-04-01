@@ -19,7 +19,7 @@ export const Workspaces = styled.div`
   background: ${SIDEBAR_BG};
   border-right: 1px solid ${SIDEBAR_BORDER};
   padding: 12px 0;
-  gap: 6px;
+  gap: 10px;
   flex-shrink: 0;
 `;
 
@@ -40,7 +40,7 @@ export const WorkspaceButton = styled.button`
 
   &.active,
   &:hover {
-    border-radius: 14px;
+    border-radius: 12px;
   }
 `;
 
@@ -112,11 +112,13 @@ export const WorkspaceName = styled.div`
   flex-shrink: 0;
 
   & > span {
-    font-weight: 900;
-    font-size: 16px;
+    font-weight: 700;
+    font-size: 20px;
     color: white;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-family: 'Geist Variable', sans-serif;
+    letter-spacing: 0.05em;
     white-space: nowrap;
     flex: 1;
   }
@@ -203,7 +205,7 @@ export const DmItem = styled.div`
   font-size: 15px;
   cursor: pointer;
   border-radius: 4px;
-  margin: 1px 8px;
+  margin: 4px 8px;
   gap: 8px;
 
   &:hover {
@@ -213,14 +215,14 @@ export const DmItem = styled.div`
 `;
 
 export const DmAvatar = styled.div<{ $color: string }>`
-  width: 18px;
-  height: 18px;
+  width: 25px;
+  height: 25px;
   border-radius: 3px;
   background: ${({ $color }) => $color};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: white;
   flex-shrink: 0;

@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
+import type { AxiosError } from 'axios';
+import ErrorPage from '@/pages/error-page';
 import { logout } from '@/api/auth';
 import { getChannels } from '@/api/channel';
 import { getWorkspaces, getWorkspaceMembers, getOnlineMembers } from '@/api/workspace';
@@ -10,7 +12,7 @@ import CreateChannelModal from '@/components/CreateChannelModal';
 import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import InviteMemberModal from '@/components/InviteMemberModal';
 import { useModalActions } from '@/store/modal';
-import { Building2, ChevronDown, Hash, Home, MessageSquare, Plus, Settings, SquarePen, UserPlus } from 'lucide-react';
+import { Building2, ChevronDown, Hash, Plus, UserPlus } from 'lucide-react';
 import {
   AddButtonWrapper,
   ChannelItem,
@@ -25,7 +27,6 @@ import {
   DropdownMenu,
   LogoutBtn,
   MenuScroll,
-  NavIconButton,
   SectionHeader,
   StatusDot,
   UserBar,
@@ -64,10 +65,11 @@ function WorkspaceLayout() {
     enabled: !!user,
   });
 
-  const { data: channels } = useQuery({
+  const { data: channels, isError: isChannelsError, error: channelsError } = useQuery({
     queryKey: ['channels', workspaceId],
     queryFn: () => getChannels(Number(workspaceId)).then((res) => res.data),
     enabled: !!workspaceId && !!user,
+    retry: false,
   });
 
   const { data: workspaceMembers = [] } = useQuery({
@@ -141,6 +143,11 @@ function WorkspaceLayout() {
 
   if (!user) return <Navigate to="/login" />;
 
+  if (isChannelsError) {
+    const status = (channelsError as AxiosError)?.response?.status ?? 400;
+    return <ErrorPage status={status} />;
+  }
+
   return (
     <>
       <WorkspaceWrapper>
@@ -153,14 +160,6 @@ function WorkspaceLayout() {
             </Link>
           ))}
           <WorkspaceDivider />
-          <NavIconButton $active>
-            <Home size={18} />
-            홈
-          </NavIconButton>
-          <NavIconButton>
-            <MessageSquare size={18} />
-            DM
-          </NavIconButton>
           <AddButtonWrapper ref={dropdownRef}>
             <WorkspaceAddButton onClick={() => setIsDropdownOpen((prev) => !prev)}>
               <Plus size={18} />
@@ -199,10 +198,6 @@ function WorkspaceLayout() {
         <Channels>
           <WorkspaceName>
             <span>{currentWorkspace?.name ?? ''}</span>
-            <div>
-              <WorkspaceIconBtn><Settings size={16} /></WorkspaceIconBtn>
-              <WorkspaceIconBtn><SquarePen size={16} /></WorkspaceIconBtn>
-            </div>
           </WorkspaceName>
 
           <MenuScroll>
@@ -237,17 +232,9 @@ function WorkspaceLayout() {
               <StatusDot $online />
               {user.nickname} (나)
             </DmItem>
-            <DmItem>
-              <Plus size={14} style={{ opacity: 0.6 }} />
-              팀원 추가
-            </DmItem>
 
             {workspaceMembers.length > 0 && (
               <>
-                <SectionHeader style={{ marginTop: 8 }}>
-                  <ChevronDown size={14} />
-                  멤버
-                </SectionHeader>
                 {workspaceMembers
                   .filter((m) => m.id !== user.id)
                   .map((member) => (
@@ -290,6 +277,11 @@ export default function Workspace() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const user = useUser();
   if (!user) return <Navigate to="/login" />;
+
+  const workspaceIdNum = Number(workspaceId);
+  if (!Number.isInteger(workspaceIdNum) || workspaceIdNum <= 0) {
+    return <ErrorPage status={400} message="유효하지 않은 워크스페이스입니다." />;
+  }
 
   return (
     <StompProvider workspaceId={workspaceId}>
