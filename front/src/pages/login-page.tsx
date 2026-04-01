@@ -8,8 +8,13 @@ import { login } from '@/api/auth';
 import { getWorkspaces } from '@/api/workspace';
 import { toast } from 'sonner';
 import { useSetUser } from '@/store/auth';
+import { useUser } from '@/store/auth';
+import { Navigate } from 'react-router-dom'
 
 export default function LoginPage() {
+    const user = useUser();
+
+
 
     const [logInError, setLogInError] = useState(false);
     const [email, onChangeEmail] = useInput('');
@@ -45,6 +50,10 @@ export default function LoginPage() {
             setLogInError(false);
             mutate({ email, password })
         }, [email, password, mutate]);
+
+    if (user) {
+        return <Navigate to={user ? '/workspace/1/channel/일반' : '/login'} replace />;
+    }
 
     return (
         <div id="container" >

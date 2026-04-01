@@ -13,8 +13,11 @@ import {
     Success,
     LinkContainer,
 } from './sign-up-page.styles';
+import { useUser } from '@/store/auth';
+import { Navigate } from 'react-router-dom'
 
 export default function SignUpPage() {
+    const user = useUser();
 
     const [email, onChangeEmail] = useInput('');
     const [nickname, onChangeNickname] = useInput('');
@@ -51,6 +54,11 @@ export default function SignUpPage() {
         },
         [email, nickname, password, mismatchError, mutate],
     );
+
+
+    if (user) {
+        return <Navigate to={user ? '/workspace/1/channel/일반' : '/login'} replace />;
+    }
 
     return (
         <div>
