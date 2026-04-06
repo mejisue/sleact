@@ -1,5 +1,6 @@
 import type { IChat } from '@/types';
 import BoringAvatar from 'boring-avatars';
+import { renderWithMentions } from '@/utils/renderWithMentions';
 import { ChatWrapper, Content, Meta, Nickname, Text, Timestamp } from './styles';
 
 interface Props {
@@ -20,7 +21,7 @@ const Chat = ({ chat }: Props) => {
           <Nickname>{chat.user.nickname}</Nickname>
           <Timestamp>{time}</Timestamp>
         </Meta>
-        <Text>{chat.content}</Text>
+        <Text>{renderWithMentions(chat.content)}</Text>
       </Content>
     </ChatWrapper>
   );

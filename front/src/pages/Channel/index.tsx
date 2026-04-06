@@ -128,6 +128,8 @@ const Channel = () => {
         onChangeChat={onChangeChat}
         onSubmitForm={onSubmitForm}
         placeholder={`#${channelName}에 메시지 보내기`}
+        members={channelMembers}
+        setChat={setChat}
       />
     </Container>
   );
