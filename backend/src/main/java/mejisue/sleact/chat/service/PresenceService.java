@@ -27,4 +27,11 @@ public class PresenceService {
         Set<String> members = redisTemplate.opsForSet().members(KEY_PREFIX + workspaceId);
         return members != null ? members : Collections.emptySet();
     }
+
+    public void clearAll() {
+        Set<String> keys = redisTemplate.keys(KEY_PREFIX + "*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+    }
 }

@@ -6,6 +6,7 @@ import mejisue.sleact.channel.domain.Channel;
 import mejisue.sleact.channel.repository.ChannelRepository;
 import mejisue.sleact.channelMember.domain.ChannelMember;
 import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
+import mejisue.sleact.chat.service.PresenceService;
 import mejisue.sleact.user.domain.Role;
 import mejisue.sleact.user.domain.User;
 import mejisue.sleact.user.repository.UserRepository;
@@ -30,6 +31,7 @@ public class DataInitializer implements ApplicationRunner {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final ChannelMemberRepository channelMemberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PresenceService presenceService;
 
     @Override
     @Transactional
@@ -75,5 +77,10 @@ public class DataInitializer implements ApplicationRunner {
 
         log.info("[DataInitializer] 기본 데이터 초기화 완료 - admin: {}, workspace: {}, channel: {}",
                 adminUser.getEmail(), defaultWS.getName(), defaultChannel.getName());
+
+        // 서버 재시작 시 이전 세션의 stale presence 데이터 초기화
+        // 서버 종료 시 SessionDisconnectEvent가 보장되지 않아 Redis에 잔류할 수 있음
+        presenceService.clearAll();
+        log.info("[DataInitializer] presence 데이터 초기화 완료");
     }
 }

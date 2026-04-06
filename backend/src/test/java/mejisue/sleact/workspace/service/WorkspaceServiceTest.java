@@ -130,13 +130,9 @@ class WorkspaceServiceTest {
     }
 
     @Test
-    @DisplayName("온라인 멤버 조회 성공")
+    @DisplayName("온라인 멤버 조회 성공 - Redis만 참조하고 DB 조회 없음")
     void getOnlineMembers_success() {
         // given
-        User owner = User.builder().email("owner@test.com").build();
-        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
-
-        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
         given(presenceService.getOnlineEmails("1")).willReturn(Set.of("a@test.com", "b@test.com"));
 
         // when
@@ -144,28 +140,13 @@ class WorkspaceServiceTest {
 
         // then
         assertThat(result).containsExactlyInAnyOrder("a@test.com", "b@test.com");
+        verify(workspaceRepository, never()).findById(anyLong());
     }
 
     @Test
-    @DisplayName("존재하지 않는 워크스페이스 온라인 멤버 조회 시 EntityNotFoundException 발생")
-    void getOnlineMembers_workspaceNotFound_throwsEntityNotFoundException() {
-        // given
-        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> workspaceService.getOnlineMembers(999L))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("999");
-    }
-
-    @Test
-    @DisplayName("온라인 멤버가 없으면 빈 Set 반환")
+    @DisplayName("온라인 멤버가 없으면 빈 Set 반환 - DB 조회 없음")
     void getOnlineMembers_noOnlineMembers_returnsEmptySet() {
         // given
-        User owner = User.builder().email("owner@test.com").build();
-        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
-
-        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
         given(presenceService.getOnlineEmails("1")).willReturn(Set.of());
 
         // when
@@ -173,6 +154,7 @@ class WorkspaceServiceTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(workspaceRepository, never()).findById(anyLong());
     }
 
     @Test
