@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM amazoncorretto:17-alpine AS builder
 WORKDIR /app
 
 COPY gradlew .
@@ -10,7 +10,7 @@ COPY src src/
 RUN chmod +x gradlew && ./gradlew bootJar -x test --no-daemon
 
 # Stage 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+FROM amazoncorretto:17-alpine
 WORKDIR /app
 
  # 보안: non-root 유저로 실행
