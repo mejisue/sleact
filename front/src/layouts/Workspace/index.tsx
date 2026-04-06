@@ -97,8 +97,10 @@ function WorkspaceLayout() {
 
   // STOMP 연결 완료 후 온라인 멤버 목록 강제 재조회
   // invalidateQueries → stale 표시만 하므로 refetchQueries로 즉시 재조회
+  // stompPresence도 초기화해 이전 워크스페이스/연결의 stale 상태가 섞이는 것을 방지
   useEffect(() => {
     if (!isConnected || !workspaceId) return;
+    setStompPresence(new Map());
     queryClient.refetchQueries({ queryKey: ['onlineMembers', workspaceId] });
   }, [isConnected, workspaceId, queryClient]);
 
