@@ -58,10 +58,7 @@ public class WorkspaceService {
     /**
      * 워크스페이스 온라인 멤버 조회
      **/
-    @Transactional(readOnly = true)
     public Set<String> getOnlineMembers(Long workspaceId) {
-        workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new EntityNotFoundException("workspace(id=" + workspaceId + ")가 존재하지 않습니다."));
         return presenceService.getOnlineEmails(workspaceId.toString());
     }
 
