@@ -40,4 +40,21 @@ describe('renderWithMentions', () => {
     render(<p>{renderWithMentions('안녕 @Alice 잘 지내?')}</p>);
     expect(screen.getByText('@Alice').tagName).toBe('SPAN');
   });
+
+  // ── 엣지 케이스 ──────────────────────────────────────────────────────
+
+  it('빈 문자열을 입력하면 아무것도 렌더링하지 않는다', () => {
+    const { container } = render(<p>{renderWithMentions('')}</p>);
+    expect(container.textContent).toBe('');
+  });
+
+  it('@ 단독 문자는 멘션으로 처리하지 않는다', () => {
+    const { container } = render(<p>{renderWithMentions('@')}</p>);
+    expect(container.querySelectorAll('span')).toHaveLength(0);
+  });
+
+  it('@ 뒤에 공백이 오면 멘션으로 처리하지 않는다', () => {
+    const { container } = render(<p>{renderWithMentions('@ alice')}</p>);
+    expect(container.querySelectorAll('span')).toHaveLength(0);
+  });
 });

@@ -171,4 +171,70 @@ describe('ChatBox - @ 멘션 드롭다운', () => {
 
     expect(textarea).toHaveValue('안녕 @Alice ');
   });
+
+  // ── 폼 제출 ──────────────────────────────────────────────────────────
+
+  it('드롭다운이 없을 때 Enter 키를 누르면 onSubmitForm이 호출된다', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const [chat, setChat] = [{ value: '' }, { setter: vi.fn() }];
+
+    function SubmitWrapper() {
+      const [value, setValue] = useState('hello');
+      return (
+        <ChatBox
+          chat={value}
+          onChangeChat={(e) => setValue(e.target.value)}
+          onSubmitForm={onSubmit}
+          placeholder="메시지 보내기"
+          setChat={setValue}
+        />
+      );
+    }
+
+    render(<SubmitWrapper />);
+    await user.click(screen.getByRole('textbox'));
+    await user.keyboard('{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    void chat; void setChat;
+  });
+
+  it('Shift+Enter는 onSubmitForm을 호출하지 않는다', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    function SubmitWrapper() {
+      const [value, setValue] = useState('hello');
+      return (
+        <ChatBox
+          chat={value}
+          onChangeChat={(e) => setValue(e.target.value)}
+          onSubmitForm={onSubmit}
+          placeholder="메시지 보내기"
+          setChat={setValue}
+        />
+      );
+    }
+
+    render(<SubmitWrapper />);
+    await user.click(screen.getByRole('textbox'));
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('입력값이 비어있으면 전송 버튼이 비활성화된다', () => {
+    render(<Wrapper members={members} />);
+    expect(screen.getByRole('button')).toBeDisabled();
+  });
+
+  it('입력값이 있으면 전송 버튼이 활성화된다', async () => {
+    const user = userEvent.setup();
+    render(<Wrapper members={members} />);
+
+    await user.type(screen.getByRole('textbox'), '안녕');
+
+    expect(screen.getByRole('button')).not.toBeDisabled();
+  });
 });
