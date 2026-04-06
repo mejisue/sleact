@@ -1,14 +1,19 @@
 services:
-  mysql:
-    image: 'mysql:latest'
-    environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
-    ports:
-      - '3306'
   redis:
-    image: 'redis:latest'
+    image: 'redis:7'
+    container_name: sleact-redis
     ports:
-      - '6379'
+      - '6379:6379'
+
+  mysql:
+    image: 'mysql:8.0'
+    container_name: sleact
+    env_file:
+      - .env
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./mysql_data:/var/lib/mysql

@@ -1,0 +1,452 @@
+package mejisue.sleact.workspace.service;
+
+import jakarta.persistence.EntityNotFoundException;
+import mejisue.sleact.channel.domain.Channel;
+import mejisue.sleact.channel.repository.ChannelRepository;
+import mejisue.sleact.channelMember.domain.ChannelMember;
+import mejisue.sleact.channelMember.repository.ChannelMemberRepository;
+import mejisue.sleact.chat.service.PresenceService;
+import mejisue.sleact.user.domain.User;
+import mejisue.sleact.user.dto.UserResDto;
+import mejisue.sleact.user.repository.UserRepository;
+import mejisue.sleact.user.service.UserMapper;
+import mejisue.sleact.workspace.domain.Workspace;
+import mejisue.sleact.workspace.dto.InviteMemberDto;
+import mejisue.sleact.workspace.dto.WorkspaceCreateDto;
+import mejisue.sleact.workspace.dto.WorkspaceResDto;
+import mejisue.sleact.workspace.repository.WorkspaceRepository;
+import mejisue.sleact.workspaceMember.domain.WorkspaceMember;
+import mejisue.sleact.workspaceMember.repository.WorkspaceMemberRepository;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+
+@ExtendWith(MockitoExtension.class)
+class WorkspaceServiceTest {
+
+    @InjectMocks
+    private WorkspaceService workspaceService;
+
+    @Mock
+    private WorkspaceRepository workspaceRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private WorkspaceMemberRepository workspaceMemberRepository;
+
+    @Mock
+    private ChannelRepository channelsRepository;
+
+    @Mock
+    private ChannelMemberRepository channelMembersRepository;
+
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private PresenceService presenceService;
+
+    @Test
+    @DisplayName("워크스페이스 멤버 목록 조회 성공")
+    void findMembersInWorkspace_success() {
+        // given
+        User user1 = User.builder().email("a@test.com").nickname("유저1").build();
+        User user2 = User.builder().email("b@test.com").nickname("유저2").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user1).build();
+
+        WorkspaceMember wm1 = WorkspaceMember.builder().workspace(workspace).user(user1).build();
+        WorkspaceMember wm2 = WorkspaceMember.builder().workspace(workspace).user(user2).build();
+
+        UserResDto dto1 = new UserResDto();
+        dto1.setEmail("a@test.com");
+        dto1.setNickname("유저1");
+
+        UserResDto dto2 = new UserResDto();
+        dto2.setEmail("b@test.com");
+        dto2.setNickname("유저2");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceId(1L)).willReturn(List.of(wm1, wm2));
+        given(userMapper.toUserDto(user1)).willReturn(dto1);
+        given(userMapper.toUserDto(user2)).willReturn(dto2);
+
+        // when
+        List<UserResDto> result = workspaceService.findMembersInWorkspace(1L);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting("email").containsExactly("a@test.com", "b@test.com");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 조회 시 EntityNotFoundException 발생")
+    void findMembersInWorkspace_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.findMembersInWorkspace(999L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+
+        verify(workspaceMemberRepository, never()).findByWorkspaceId(anyLong());
+    }
+
+    @Test
+    @DisplayName("워크스페이스에 멤버가 없으면 빈 목록 반환")
+    void findMembersInWorkspace_noMembers_returnsEmptyList() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(workspaceMemberRepository.findByWorkspaceId(1L)).willReturn(List.of());
+
+        // when
+        List<UserResDto> result = workspaceService.findMembersInWorkspace(1L);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("온라인 멤버 조회 성공 - Redis만 참조하고 DB 조회 없음")
+    void getOnlineMembers_success() {
+        // given
+        given(presenceService.getOnlineEmails("1")).willReturn(Set.of("a@test.com", "b@test.com"));
+
+        // when
+        Set<String> result = workspaceService.getOnlineMembers(1L);
+
+        // then
+        assertThat(result).containsExactlyInAnyOrder("a@test.com", "b@test.com");
+        verify(workspaceRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("온라인 멤버가 없으면 빈 Set 반환 - DB 조회 없음")
+    void getOnlineMembers_noOnlineMembers_returnsEmptySet() {
+        // given
+        given(presenceService.getOnlineEmails("1")).willReturn(Set.of());
+
+        // when
+        Set<String> result = workspaceService.getOnlineMembers(1L);
+
+        // then
+        assertThat(result).isEmpty();
+        verify(workspaceRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 생성 성공")
+    void createWorkspace_success() {
+        // given
+        User owner = User.builder().email("test@test.com").nickname("테스터").build();
+        WorkspaceCreateDto dto = new WorkspaceCreateDto();
+        dto.setWorkspace("테스트 워크스페이스");
+        dto.setUrl("test-workspace");
+
+        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(owner));
+        given(workspaceRepository.save(any(Workspace.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(channelsRepository.save(any(Channel.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        WorkspaceResDto result = workspaceService.createWorkspace("test@test.com", dto);
+
+        // then
+        assertThat(result.getName()).isEqualTo("테스트 워크스페이스");
+        assertThat(result.getUrl()).isEqualTo("test-workspace");
+        verify(workspaceRepository).save(any(Workspace.class));
+        verify(channelsRepository).save(any(Channel.class));
+        verify(workspaceMemberRepository).save(any(WorkspaceMember.class));
+        verify(channelMembersRepository).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("워크스페이스 생성 시 기본 채널명은 '일반'")
+    void createWorkspace_defaultChannelName() {
+        // given
+        User owner = User.builder().email("test@test.com").build();
+        WorkspaceCreateDto dto = new WorkspaceCreateDto();
+        dto.setWorkspace("테스트 워크스페이스");
+        dto.setUrl("test-workspace");
+
+        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(owner));
+        given(workspaceRepository.save(any(Workspace.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(channelsRepository.save(any(Channel.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        workspaceService.createWorkspace("test@test.com", dto);
+
+        // then
+        verify(channelsRepository).save(argThat(channel -> "일반".equals(channel.getName())));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저로 워크스페이스 생성 시 EntityNotFoundException 발생")
+    void createWorkspace_userNotFound_throwsEntityNotFoundException() {
+        // given
+        WorkspaceCreateDto dto = new WorkspaceCreateDto();
+        dto.setWorkspace("테스트 워크스페이스");
+        dto.setUrl("test-workspace");
+
+        given(userRepository.findByEmail("notfound@test.com")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.createWorkspace("notfound@test.com", dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("User not found");
+
+        verify(workspaceRepository, never()).save(any());
+        verify(channelsRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 초대 성공")
+    void inviteMembersToWorkspace_success() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().name("일반").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then
+        verify(workspaceMemberRepository).save(any(WorkspaceMember.class));
+        verify(channelMembersRepository).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스로 초대 시 EntityNotFoundException 발생")
+    void inviteMembersToWorkspace_workspaceNotFound_throwsEntityNotFoundException() {
+        // given
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(999L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace(999L, dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+
+        verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저 초대 시 EntityNotFoundException 발생")
+    void inviteMembersToWorkspace_userNotFound_throwsEntityNotFoundException() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("notfound@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("notfound@test.com")).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace(1L, dto))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당 이메일을 가진 회원이 존재하지 않습니다.");
+
+        verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("이미 워크스페이스 멤버인 유저 초대 시 IllegalStateException 발생")
+    void inviteMembersToWorkspace_alreadyMember_throwsIllegalStateException() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any()))
+                .willReturn(Optional.of(WorkspaceMember.builder().workspace(workspace).user(invitee).build()));
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.inviteMembersToWorkspace(1L, dto))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("이미 회원이 워크스페이스에 소속되어 있습니다.");
+
+        verify(workspaceMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("channelNames 지정 시 추가 채널에도 멤버 추가")
+    void inviteMembersToWorkspace_withExtraChannels_savesChannelMembers() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        Channel devChannel = Channel.builder().id(20L).name("개발").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("개발"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+        given(channelsRepository.findByWorkspaceAndName(workspace, "개발")).willReturn(Optional.of(devChannel));
+        given(channelMembersRepository.findByChannelIdAndUserEmail(20L, "invitee@test.com")).willReturn(Optional.empty());
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then: 기본 채널(일반) + 추가 채널(개발) = 총 2회 저장
+        verify(channelMembersRepository, times(2)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("channelNames에 '일반'이 포함된 경우 중복 추가하지 않음")
+    void inviteMembersToWorkspace_withDefaultChannelInList_skipsDefaultChannel() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("일반"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then: 기본 채널(일반) 1회만 저장
+        verify(channelMembersRepository, times(1)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("channelNames에 존재하지 않는 채널명이 있으면 예외 없이 건너뜀")
+    void inviteMembersToWorkspace_withNonExistentChannel_skipsGracefully() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("없는채널"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+        given(channelsRepository.findByWorkspaceAndName(workspace, "없는채널")).willReturn(Optional.empty());
+
+        // when & then: 예외 없이 정상 종료
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> workspaceService.inviteMembersToWorkspace(1L, dto));
+
+        // 기본 채널(일반)만 저장
+        verify(channelMembersRepository, times(1)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("초대 대상자가 이미 추가 채널 멤버이면 중복 저장하지 않음")
+    void inviteMembersToWorkspace_alreadyChannelMember_skipsChannelSave() {
+        // given
+        User owner = User.builder().email("owner@test.com").build();
+        User invitee = User.builder().email("invitee@test.com").nickname("초대받은유저").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(owner).build();
+        Channel defaultChannel = Channel.builder().id(10L).name("일반").workspace(workspace).build();
+        Channel devChannel = Channel.builder().id(20L).name("개발").workspace(workspace).build();
+
+        InviteMemberDto dto = new InviteMemberDto();
+        dto.setEmail("invitee@test.com");
+        dto.setChannelNames(List.of("개발"));
+
+        given(workspaceRepository.findById(1L)).willReturn(Optional.of(workspace));
+        given(userRepository.findByEmail("invitee@test.com")).willReturn(Optional.of(invitee));
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserId(anyLong(), any())).willReturn(Optional.empty());
+        given(channelsRepository.findByWorkspaceAndName(workspace, "일반")).willReturn(Optional.of(defaultChannel));
+        given(channelsRepository.findByWorkspaceAndName(workspace, "개발")).willReturn(Optional.of(devChannel));
+        given(channelMembersRepository.findByChannelIdAndUserEmail(20L, "invitee@test.com"))
+                .willReturn(Optional.of(ChannelMember.builder().channel(devChannel).user(invitee).build()));
+
+        // when
+        workspaceService.inviteMembersToWorkspace(1L, dto);
+
+        // then: 기본 채널(일반)만 저장, 개발 채널은 이미 멤버이므로 저장 안 함
+        verify(channelMembersRepository, times(1)).save(any(ChannelMember.class));
+    }
+
+    @Test
+    @DisplayName("워크스페이스 멤버 삭제 성공")
+    void deleteMemberInWorkspace_success() {
+        // given
+        User user = User.builder().email("member@test.com").build();
+        Workspace workspace = Workspace.builder().id(1L).name("테스트 워크스페이스").url("test-ws").owner(user).build();
+        WorkspaceMember workspaceMember = WorkspaceMember.builder().workspace(workspace).user(user).build();
+
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(1L, "member@test.com"))
+                .willReturn(Optional.of(workspaceMember));
+
+        // when
+        workspaceService.deleteMemberInWorkspace(1L, "member@test.com");
+
+        // then
+        verify(workspaceMemberRepository, times(1)).delete(workspaceMember);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 워크스페이스 또는 유저로 멤버 삭제 시 EntityNotFoundException 발생")
+    void deleteMemberInWorkspace_notFound_throwsEntityNotFoundException() {
+        // given
+        given(workspaceMemberRepository.findByWorkspaceIdAndUserEmail(999L, "member@test.com"))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> workspaceService.deleteMemberInWorkspace(999L, "member@test.com"))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("해당하는 워크스페이스 또는 유저 정보가 없습니다.");
+
+        verify(workspaceMemberRepository, never()).delete(any());
+    }
+}
