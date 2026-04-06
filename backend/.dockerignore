@@ -1,0 +1,13 @@
+.gradle/
+build/
+mysql_data/
+.env
+.env.*
+src/main/resources/application-local.yaml
+src/test/
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+.claude/

@@ -19,7 +19,7 @@ export default function StompProvider({ children, workspaceId }: { children: Rea
     if (!workspaceId) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`http://localhost:8080/connect?workspace=${workspaceId}`),
+      webSocketFactory: () => new SockJS(`${import.meta.env.VITE_WS_BASE_URL}/connect?workspace=${workspaceId}`),
       onConnect: () => setIsConnected(true),
       onDisconnect: () => setIsConnected(false),
       onStompError: (frame) => console.error('STOMP error:', frame),
