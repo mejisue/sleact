@@ -1,0 +1,71 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sleact-mysql
+    env_file:
+      - .env.prod
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sleact-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: sleact-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - sleact-network
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/sleact-backend:latest
+    container_name: sleact-backend
+    env_file:
+      - .env.prod
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "8083:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - sleact-network
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/sleact-frontend:latest
+    container_name: sleact-frontend
+    ports:
+      - "8090:80"
+    depends_on:
+      - backend
+    networks:
+      - sleact-network
+    restart: unless-stopped
+
+networks:
+  sleact-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:

@@ -1,2 +1,15 @@
-.env
+# env
+.env*
+!.env*.example
+
+# macOS
 .DS_Store
+
+# build output
+backend/build/
+front/dist/
+front/node_modules/
+
+# IDE
+.idea/
+*.iml
