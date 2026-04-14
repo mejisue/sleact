@@ -1,47 +1,71 @@
-name: EC2 배포
+name: Deploy Sleact
 
 on:
   push:
-    branches: [main] # 배포할 브랜치 설정
-  workflow_dispatch: # 수동 배포도 허용
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ${{ github.repository_owner }}/sleact-backend
 
 jobs:
-  deploy:
+  build-and-push-backend:
+    name: Build & Push Backend Image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: EC2 배포
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: [build-and-push-backend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: ${{ secrets.EC2_PORT || 22 }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.EC2_USERNAME }}/sleact
+            # GHCR 로그인
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # 최신 코드 가져오기
-            git pull
+            cd ~/sleact
 
-            # 새로운 이미지 빌드
-            echo "이미지 빌드 시작"
-            sudo docker-compose build
+            # 최신 이미지 pull
+            docker compose --env-file .env.prod -f compose.prod.yaml pull backend
 
-            # 기존 컨테이너 중지 및 제거
-            echo "기존 컨테이너 중지 및 제거"
-            sudo docker-compose down
+            # 재시작 (mysql, redis는 유지)
+            docker compose --env-file .env.prod -f compose.prod.yaml up -d --no-deps backend
 
-            # 새로운 컨테이너 시작
-            echo "새로운 컨테이너 시작"
-            sudo docker-compose up -d
-
-            # 사용하지 않는 이미지 정리
-            echo "사용하지 않는 이미지 정리"
-            sudo docker image prune -f
-
-            echo "배포 완료"
-
-            sudo docker-compose ps
+            # 오래된 이미지 정리
+            docker image prune -f
