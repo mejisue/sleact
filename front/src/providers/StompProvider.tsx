@@ -26,11 +26,13 @@ export default function StompProvider({ children, workspaceId }: { children: Rea
       onStompError: (frame) => console.error('STOMP error:', frame),
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setClient(stompClient);
     stompClient.activate();
 
     return () => {
       stompClient.deactivate();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setClient(null);
     };
   }, [workspaceId]);
