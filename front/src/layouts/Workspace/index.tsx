@@ -100,6 +100,7 @@ function WorkspaceLayout() {
   // stompPresence도 초기화해 이전 워크스페이스/연결의 stale 상태가 섞이는 것을 방지
   useEffect(() => {
     if (!isConnected || !workspaceId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStompPresence(new Map());
     queryClient.refetchQueries({ queryKey: ['onlineMembers', workspaceId] });
   }, [isConnected, workspaceId, queryClient]);
