@@ -8,7 +8,6 @@ on:
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ${{ github.repository_owner }}/sleact-backend
-  FRONTEND_IMAGE: ${{ github.repository_owner }}/sleact-frontend
 
 jobs:
   build-and-push-backend:
@@ -41,43 +40,10 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
-  build-and-push-frontend:
-    name: Build & Push Frontend Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./front
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
-          build-args: |
-            VITE_API_BASE_URL=${{ secrets.SLEACT_API_BASE_URL }}
-            VITE_WS_BASE_URL=${{ secrets.SLEACT_WS_BASE_URL }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
-
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    needs: [build-and-push-backend, build-and-push-frontend]
+    needs: [build-and-push-backend]
 
     steps:
       - name: Checkout
@@ -96,10 +62,10 @@ jobs:
             cd ~/sleact
 
             # 최신 이미지 pull
-            docker compose --env-file .env.prod -f compose.prod.yaml pull backend frontend
+            docker compose --env-file .env.prod -f compose.prod.yaml pull backend
 
             # 재시작 (mysql, redis는 유지)
-            docker compose --env-file .env.prod -f compose.prod.yaml up -d --no-deps backend frontend
+            docker compose --env-file .env.prod -f compose.prod.yaml up -d --no-deps backend
 
             # 오래된 이미지 정리
             docker image prune -f

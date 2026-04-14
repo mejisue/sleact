@@ -51,16 +51,6 @@ services:
       - sleact-network
     restart: unless-stopped
 
-  frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/sleact-frontend:latest
-    container_name: sleact-frontend
-    ports:
-      - "8090:80"
-    depends_on:
-      - backend
-    networks:
-      - sleact-network
-    restart: unless-stopped
 
 networks:
   sleact-network:
