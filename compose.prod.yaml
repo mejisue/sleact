@@ -1,16 +1,19 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: sleact-mysql
+    container_name: shared-mysql
     env_file:
       - .env.prod
     environment:
-      - MYSQL_DATABASE=${DB_NAME}
+      # MYSQL_DATABASE 제거 — mysql-init/init.sh 에서 3개 DB 직접 생성
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_USER=${DB_USERNAME}
       - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d  # sleact, mywebsite, threaleact DB 초기화
+    ports:
+      - "3306:3306"  # mywebsite, threaleact 백엔드가 172.17.0.1:3306 으로 접근
     networks:
       - sleact-network
     restart: unless-stopped
@@ -36,7 +39,7 @@ services:
     env_file:
       - .env.prod
     environment:
-      - DB_HOST=mysql
+      - DB_HOST=mysql  # 같은 compose 네트워크이므로 컨테이너명으로 접근
       - DB_PORT=3306
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -50,7 +53,6 @@ services:
     networks:
       - sleact-network
     restart: unless-stopped
-
 
 networks:
   sleact-network:
