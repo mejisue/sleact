@@ -39,6 +39,7 @@ services:
     env_file:
       - .env.prod
     environment:
+      - JAVA_OPTS=-Xms128m -Xmx256m
       - DB_HOST=mysql  # 같은 compose 네트워크이므로 컨테이너명으로 접근
       - DB_PORT=3306
       - REDIS_HOST=redis
