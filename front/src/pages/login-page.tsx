@@ -57,7 +57,7 @@ export default function LoginPage() {
 
     return (
         <div id="container" >
-            <Header>TEST for Sleact! </Header>
+            <Header>SLEACT</Header>
             <Form onSubmit={onSubmit} >
                 <Label id="email-label" >
                     <span>이메일 주소 </span>
